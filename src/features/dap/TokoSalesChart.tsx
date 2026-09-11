@@ -37,7 +37,13 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
         markPoint: {
           data: [{ type: "max", name: "Terbaik" }],
           symbolSize: 50, itemStyle: { color: "#f59e0b" },
-          label: { color: "#78350f", fontWeight: 800, fontSize: 10, formatter: (p: { value: number }) => rpShort(p.value) },
+          label: {
+            color: "#78350f", fontWeight: 800, fontSize: 10,
+            formatter: (p: { value: unknown }) => {
+              const n = Number(p.value);
+              return isFinite(n) ? rpShort(n) : "";
+            },
+          },
         },
       },
       {
