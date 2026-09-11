@@ -1,26 +1,51 @@
+@import url("https://fonts.cdnfonts.com/css/sf-pro-display");
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
+
+
+/* ===== TEMA LIGHT: aktif saat <html> TIDAK punya class .dark ===== */
+html:not(.dark) body { background-color: #eef2f8; color: #0f172a; }
+
+/* teks */
+html:not(.dark) .text-slate-100 { color: #0f172a; }
+html:not(.dark) .text-slate-200 { color: #1e293b; }
+html:not(.dark) .text-slate-300 { color: #334155; }
+html:not(.dark) .text-slate-400 { color: #64748b; }
+html:not(.dark) .text-slate-500 { color: #94a3b8; }
+html:not(.dark) .text-indigo-200 { color: #4338ca; }
+html:not(.dark) .text-indigo-300 { color: #4f46e5; }
+html:not(.dark) .text-amber-300 { color: #b45309; }
+html:not(.dark) .text-emerald-300 { color: #047857; }
+html:not(.dark) .text-sky-300 { color: #0369a1; }
+
+/* permukaan */
+html:not(.dark) .bg-\[\#0a0e1a\] { background-color: #eef2f8; }
+html:not(.dark) .bg-\[\#0a0e1a\]\/80 { background-color: rgba(255,255,255,0.85); }
+html:not(.dark) .bg-white\/5 { background-color: rgba(15,23,42,0.05); }
+html:not(.dark) .hover\:bg-white\/5:hover { background-color: rgba(15,23,42,0.07); }
+html:not(.dark) .bg-white\/\[0\.04\] { background-color: rgba(15,23,42,0.04); }
+html:not(.dark) .bg-white\/10 { background-color: rgba(15,23,42,0.08); }
+html:not(.dark) .border-white\/10 { border-color: rgba(15,23,42,0.12); }
+html:not(.dark) .border-white\/5 { border-color: rgba(15,23,42,0.08); }
+
+/* aksen indigo */
+html:not(.dark) .bg-indigo-500\/15 { background-color: rgba(99,102,241,0.10); }
+html:not(.dark) .bg-indigo-500\/25 { background-color: rgba(99,102,241,0.14); }
+html:not(.dark) .bg-indigo-500\/30 { background-color: rgba(99,102,241,0.16); }
+html:not(.dark) .ring-indigo-400\/50 { --tw-ring-color: rgba(79,70,229,0.45); }
+html:not(.dark) .ring-indigo-400\/40 { --tw-ring-color: rgba(79,70,229,0.40); }
+
+/* lain-lain */
+html:not(.dark) .\[\&\>option\]\:bg-slate-900 > option { background-color: #ffffff; }
+html:not(.dark) .placeholder\:text-slate-500::placeholder { color: #94a3b8; }
+html:not(.dark) .shadow-\[0_0_40px_rgba\(99\,102\,241\,0\.12\)\] { box-shadow: 0 8px 30px rgba(79,70,229,0.08); }
