@@ -15,25 +15,22 @@ export default function BulananPage() {
   const { data, isLoading } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const [area, setArea] = useState<(typeof AREAS)[number]>("GLOBAL");
 
+  // GLOBAL = jumlah 4 area (baris GLOBAL tidak ikut dihitung); filter lain = area tsb saja
   const rows = useMemo(
-    () => (data?.rows ?? []).filter((r) => area === "GLOBAL" || r.area === area),
+    () => (data?.rows ?? []).filter((r) => (area === "GLOBAL" ? r.area !== "GLOBAL" : r.area === area)),
     [data, area]
   );
 
-  const gaugeRows = useMemo(() => {
-    const all = data?.rows ?? [];
-    return area === "GLOBAL" ? all.filter((r) => r.area === "GLOBAL") : all.filter((r) => r.area === area);
-  }, [data, area]);
   const trip = useMemo(() => ({
-    jalan: gaugeRows.reduce((s, r) => s + r.trip, 0),
-    total: gaugeRows.reduce((s, r) => s + r.tripKuota, 0),
-  }), [gaugeRows]);
+    jalan: rows.reduce((s, r) => s + r.trip, 0),
+    total: rows.reduce((s, r) => s + r.tripKuota, 0),
+  }), [rows]);
   const kon = useMemo(() => ({
-    potensi: gaugeRows.reduce((s, r) => s + r.potensi, 0),
-    aktif: gaugeRows.reduce((s, r) => s + r.taTotal, 0),
-    noo: gaugeRows.reduce((s, r) => s + r.noo, 0),
-    reaktif: gaugeRows.reduce((s, r) => s + r.reaktif, 0),
-  }), [gaugeRows]);
+    potensi: rows.reduce((s, r) => s + r.potensi, 0),
+    aktif: rows.reduce((s, r) => s + r.taTotal, 0),
+    noo: rows.reduce((s, r) => s + r.noo, 0),
+    reaktif: rows.reduce((s, r) => s + r.reaktif, 0),
+  }), [rows]);
 
   const { tgt, act } = useMemo(() => ({
     tgt: rows.reduce((s, r) => s + r.target, 0),
@@ -70,7 +67,7 @@ export default function BulananPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <PotionGauge title="Penjualan" pct={pcp} gradient={["#6366f1", "#22d3ee"]}
-          formatter={(v) => `${v.toFixed(1)}%`} badge={badge} flag={badge}
+          formatter={(v) => `${v.toFixed(1)}%`} badge={badge}
           footer={
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between"><span className="text-slate-400">Target</span><CountUp value={tgt} format={rp} className="font-medium text-slate-200" /></div>

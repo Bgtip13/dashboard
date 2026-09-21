@@ -33,13 +33,13 @@ export default function BerandaPage() {
     return () => clearInterval(t);
   }, []);
 
-  const rows = useMemo(() => (data?.rows ?? []).filter((r) => r.area === "GLOBAL"), [data]);
-  const g = rows[0];
-  const tgt = g?.target ?? 0, act = g?.aktual ?? 0;
+  const rows = useMemo(() => (data?.rows ?? []).filter((r) => r.area !== "GLOBAL"), [data]);
+  const tgt = rows.reduce((s, r) => s + r.target, 0);
+  const act = rows.reduce((s, r) => s + r.aktual, 0);
   const pcp = tgt ? (act / tgt) * 100 : 0;
   const badge = getBadge(pcp);
-  const trip = { jalan: g?.trip ?? 0, total: g?.tripKuota ?? 0 };
-  const kon = { potensi: g?.potensi ?? 0, aktif: g?.taTotal ?? 0 };
+  const trip = { jalan: rows.reduce((s, r) => s + r.trip, 0), total: rows.reduce((s, r) => s + r.tripKuota, 0) };
+  const kon = { potensi: rows.reduce((s, r) => s + r.potensi, 0), aktif: rows.reduce((s, r) => s + r.taTotal, 0) };
   const he = hariEfektif();
   const kejar = Math.max(tgt - act, 0);
   const sisaHe = Math.max(he.total - he.berjalan, 0);
