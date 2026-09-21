@@ -10,7 +10,7 @@ import WeeklyTable from "@/features/weekly/WeeklyTable";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 
-const AREAS = ["SOLO", "DIY", "SEMARANG", "TAB"] as const;
+const AREAS = ["GLOBAL", "SOLO", "DIY", "SEMARANG", "TAB"] as const;
 const WEEKS = ["M1", "M2", "M3", "M4", "M5"] as const;
 type Area = (typeof AREAS)[number];
 type WeekSel = (typeof WEEKS)[number] | "ALL";
