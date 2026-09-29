@@ -16,7 +16,7 @@ export interface ProdukChartConfig {
 const GRID = { left: 8, right: 8, top: 4, bottom: 0 };
 const LOGO_COL = 26;  // kolom logo
 const NAME_COL = 200; // kolom nama produk
-const AXIS_X = GRID.left + LOGO_COL + NAME_COL; // posisi sumbu-Y (bars mulai di sini)
+const AXIS_X = GRID.left + LOGO_COL + NAME_COL; // posisi sumbu-Y (batang mulai di sini)
 const CHART_H = 384;  // tinggi chart (px), harus sama dengan style container
 
 function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
@@ -60,7 +60,10 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
         ]),
       },
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },
-      label: { show: true, position: "right", color: txt, formatter: (p: { value: number }) => fmt(Number(p.value)) },
+      label: {
+        show: true, position: "right", color: txt,
+        formatter: (p) => fmt(Number(p.value)), // ← FIX: tanpa anotasi { value: number }
+      },
     }],
     animationDuration: 900, animationDurationUpdate: 700, animationEasingUpdate: "cubicOut",
   };
