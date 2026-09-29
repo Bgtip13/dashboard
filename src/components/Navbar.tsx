@@ -9,6 +9,7 @@ const TABS = [
   { href: "/bulanan", label: "Bulanan" },
   { href: "/mingguan", label: "Mingguan" },
   { href: "/dap", label: "DAP" },
+  { href: "/produk", label: "Produk" }, // ← TAMBAHAN BARU
 ];
 
 export default function Navbar() {

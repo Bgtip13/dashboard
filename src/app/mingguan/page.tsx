@@ -70,7 +70,11 @@ export default function MingguanPage() {
   const tgt = useMemo(() => {
     if (week === "ALL") {
       const all = monthly?.rows ?? [];
-      const m = area === "GLOBAL" ? all : all.filter((r) => r.area === area);
+      // ← FIX: saat GLOBAL, buang baris agregat GLOBAL biar nggak dobel hitung (5,8M jadi 11,6M)
+      const m =
+        area === "GLOBAL"
+          ? all.filter((r) => r.area !== "GLOBAL")
+          : all.filter((r) => r.area === area);
       return m.reduce((s, r) => s + r.target, 0);
     }
     return rows.reduce((s, r) => s + (r.targetPerMinggu ?? 0), 0) * weekIdx.length;
