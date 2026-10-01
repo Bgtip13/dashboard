@@ -15,4 +15,4 @@ export function getBadge(pcp: number): BadgeInfo {
 }
 
 /** Badge hanya muncul tanggal >= 15 */
-export const showBadge = () => new Date().getDate() >= 15;
+export const showBadge = () => new Date().getDate() >= 01;
