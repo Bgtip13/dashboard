@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { useECharts } from "@/hooks/useECharts";
 import { useTheme } from "@/app/providers";
-import { showBadge, type BadgeInfo } from "@/lib/badge";
+import type { BadgeInfo } from "@/lib/badge";
 import FlagBadge from "@/components/FlagBadge";
 import InfinityLoop from "@/components/InfinityLoop";
 import Icn from "@/components/Icn";
@@ -62,7 +62,7 @@ export default function PotionGauge({
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
       className="relative rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-shadow hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
       <h3 className="text-sm font-semibold text-slate-300">{title}</h3>
-      {badge && showBadge() && (
+      {badge && (
         <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.6 }}
           className="absolute left-4 top-10 z-10 rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -70,7 +70,7 @@ export default function PotionGauge({
           <Icn e={badge.emoji} className="mr-1 h-3 w-3" /> {badge.label}
         </motion.span>
       )}
-      {flag && showBadge() && <FlagBadge badge={flag} />}
+      {flag && <FlagBadge badge={flag} />}
       {infinite ? (
         <div className="flex h-44 w-full items-center justify-center"><InfinityLoop className="h-36" /></div>
       ) : (
