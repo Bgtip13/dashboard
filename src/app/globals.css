@@ -26,6 +26,7 @@ html:not(.dark) .text-indigo-200 { color: #4338ca; }
 html:not(.dark) .text-indigo-300 { color: #4f46e5; }
 html:not(.dark) .text-amber-300 { color: #b45309; }
 html:not(.dark) .text-emerald-300 { color: #047857; }
+html:not(.dark) .text-rose-300 { color: #be123c; }
 html:not(.dark) .text-sky-300 { color: #0369a1; }
 
 /* permukaan */
