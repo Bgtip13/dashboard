@@ -41,10 +41,11 @@ function option(ringkas: Ringkasan, isDark: boolean): EChartsOption {
 export default function KomposisiToko({ ringkas }: { ringkas: Ringkasan }) {
   const { isDark } = useTheme();
   const ref = useECharts(option(ringkas, isDark), [ringkas, isDark]);
+  // kategori kosong disembunyikan supaya legenda tidak penuh baris "0 toko"
   const baris = [
     { key: "AKTIF" as const, label: KATEGORI.AKTIF.label, color: KATEGORI.AKTIF.color, toko: ringkas.perKategori.AKTIF.toko, target: ringkas.perKategori.AKTIF.target },
     ...URUTAN_TANPA.map((k) => ({ key: k, label: KATEGORI[k].label, color: KATEGORI[k].color, toko: ringkas.perKategori[k].toko, target: ringkas.perKategori[k].target })),
-  ];
+  ].filter((b) => b.toko > 0);
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">

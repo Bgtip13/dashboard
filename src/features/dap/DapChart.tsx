@@ -80,7 +80,8 @@ function option(values: number[], loss: number[], sel: number, isDark: boolean):
             borderRadius: [6, 6, 0, 0],
             color: isDark ? "rgba(251,113,133,0.30)" : "rgba(244,63,94,0.18)",
             borderColor: "#fb7185",
-            borderWidth: 1,
+            // bulan tanpa nilai tidak perlu digambar: border 1px tampak seperti bar tipis
+            borderWidth: v > 0 ? 1 : 0,
           },
         })),
       },
