@@ -1,7 +1,7 @@
 import type { DapRow } from "./types";
 
-/** Filter utama: semua toko, toko yang ada transaksi, atau toko tanpa transaksi */
-export type TrxFilter = "ALL" | "AKTIF" | "TANPA";
+/** Filter utama: semua toko, ada transaksi, ada transaksi tapi di bawah target, atau tanpa transaksi */
+export type TrxFilter = "ALL" | "AKTIF" | "BAWAH" | "TANPA";
 
 /** Alasan toko tidak transaksi (dipakai saat filter = TANPA) */
 export type Kategori = "AKTIF" | "BERHENTI" | "IDLE2" | "BELUM" | "TUTUP";
@@ -106,6 +106,23 @@ export interface Ringkasan {
   pctNominalHilang: number;
   bukanKerugianToko: number;
   bukanKerugianNominal: number;
+  /** Toko yang bulan ini transaksi tapi belum mencapai target toko */
+  bawahToko: number;
+  /** Total kekurangan = Σ(target − aktual) dari toko di atas */
+  bawahNominal: number;
+  /** Toko yang bulan ini melampaui target toko */
+  atasToko: number;
+  /** Total kelebihan = Σ(aktual − target) — pengurang gap */
+  atasNominal: number;
+  /** Gap = total target − realisasi bulan ini */
+  gapNominal: number;
+}
+
+/** Toko dihitung "di bawah target" hanya kalau punya target dan sudah transaksi bulan ini */
+export function diBawahTarget(r: DapRow, monthIdx: number): boolean {
+  if (r.targetToko <= 0) return false;
+  const aktual = aktualBulan(r, monthIdx);
+  return aktual > 0 && aktual < r.targetToko;
 }
 
 const bucket = (): Bucket => ({ toko: 0, target: 0, aktual: 0 });
@@ -116,6 +133,7 @@ export function ringkasSegmentasi(rows: DapRow[], monthIdx: number): Ringkasan {
   };
   const total = rows.length;
   let targetTotal = 0, aktualTotal = 0;
+  let bawahToko = 0, bawahNominal = 0, atasToko = 0, atasNominal = 0;
 
   for (const r of rows) {
     const k = kategori(r, monthIdx);
@@ -126,6 +144,13 @@ export function ringkasSegmentasi(rows: DapRow[], monthIdx: number): Ringkasan {
     b.toko += 1;
     b.target += r.targetToko;
     b.aktual += aktual;
+
+    // hanya toko yang bulan ini transaksi: yang 0 sudah masuk nominal hilang.
+    // target 0 tapi ada penjualan tetap dihitung surplus supaya jumlah petak = gap.
+    if (k === "AKTIF") {
+      if (aktual < r.targetToko) { bawahToko += 1; bawahNominal += r.targetToko - aktual; }
+      else { atasToko += 1; atasNominal += aktual - r.targetToko; }
+    }
   }
 
   const aktif = { ...perKategori.AKTIF };
@@ -156,6 +181,11 @@ export function ringkasSegmentasi(rows: DapRow[], monthIdx: number): Ringkasan {
     pctNominalHilang: targetTotal ? (hilangNominal / targetTotal) * 100 : 0,
     bukanKerugianToko: perKategori.BELUM.toko + perKategori.TUTUP.toko,
     bukanKerugianNominal: perKategori.BELUM.target + perKategori.TUTUP.target,
+    bawahToko,
+    bawahNominal,
+    atasToko,
+    atasNominal,
+    gapNominal: targetTotal - aktualTotal,
   };
 }
 

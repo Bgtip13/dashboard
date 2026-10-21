@@ -97,7 +97,7 @@ function toDap(vals: string[][]): DapPayload {
   head.forEach((c, i) => { const k = norm(c); if (k && !(k in map)) map[k] = i; });
 
   let dataStart = h + 1;
-  let monthCols = Array(12).fill(-1);
+  const monthCols = Array(12).fill(-1);
   const nextRow = vals[h + 1] ?? [];
   const monthHits = nextRow.map((c, j) => ({ m: monthIndex(c), j })).filter((x) => x.m !== -1);
   if (monthHits.length >= 3) {
