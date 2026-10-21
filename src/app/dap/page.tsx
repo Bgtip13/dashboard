@@ -6,7 +6,7 @@ import { fetchDap, fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
 import { rp, rpShort } from "@/lib/utils";
 import {
-  KATEGORI, URUTAN_TANPA, kategori, hilangPerBulan, hilangPerKabupaten,
+  KATEGORI, URUTAN_TANPA, diBawahTarget, kategori, hilangPerBulan, hilangPerKabupaten,
   isKerugian, ringkasSegmentasi, type AlasanFilter, type TrxFilter,
 } from "@/lib/dapSegment";
 import DapChart from "@/features/dap/DapChart";
@@ -16,11 +16,14 @@ import KomposisiToko from "@/features/dap/KomposisiToko";
 import HilangPerKabupaten from "@/features/dap/HilangPerKabupaten";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
+import { FilterBar, FilterGroup, FilterPills, FilterSelect, FilterSearch } from "@/components/FilterBar";
 import type { DapRow } from "@/lib/types";
 
 const MONTHS = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
 
-const selectCls = "rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 [&>option]:bg-slate-900";
+/** titik warna kategori + jumlah, dipakai di pill filter */
+const dot = (c: string) => <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c }} />;
+const countChip = (n: React.ReactNode) => <span className="rounded-md bg-white/10 px-1 py-px text-[10px] tabular-nums">{n}</span>;
 
 function Chip({ label, value, accent, dot }: { label: string; value: string; accent?: string; dot?: string }) {
   return (
@@ -31,6 +34,34 @@ function Chip({ label, value, accent, dot }: { label: string; value: string; acc
         {value}
       </p>
     </div>
+  );
+}
+
+/** Satu petak komposisi gap target — bisa diklik untuk memfilter tabel */
+function GapTile({ label, toko, sub, tone, onClick, active }: {
+  label: string; toko: number; sub: string;
+  tone: "loss" | "neutral" | "under" | "over";
+  onClick?: () => void; active?: boolean;
+}) {
+  const color = tone === "loss" ? "text-rose-300"
+    : tone === "under" ? "text-amber-300"
+      : tone === "over" ? "text-emerald-300" : "text-slate-300";
+  const cls = `rounded-xl border px-2.5 py-2 text-left transition-colors ${active ? "border-indigo-400/50 bg-indigo-500/10" : "border-white/10 bg-white/[0.03]"}`;
+  const body = (
+    <>
+      <p className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-slate-400">
+        <span className="min-w-0 truncate" title={label}>{label}</span>
+        {onClick && <span className="shrink-0 text-[9px] text-slate-500">{active ? "aktif" : "filter"}</span>}
+      </p>
+      <p className={`mt-0.5 text-sm font-bold ${color}`}>{toko} toko</p>
+      <p className="truncate text-[10px] text-slate-500" title={sub}>{sub}</p>
+    </>
+  );
+  if (!onClick) return <div className={cls}>{body}</div>;
+  return (
+    <button onClick={onClick} title={`Klik untuk memfilter: ${label}`} className={`${cls} hover:bg-white/5`}>
+      {body}
+    </button>
   );
 }
 
@@ -47,39 +78,10 @@ function Kpi({ label, sub, delay, children }: {
   );
 }
 
-function Seg({ items, value, onChange, layoutId }: {
-  items: { key: string; label: string; count: number; color?: string; hint?: string }[];
-  value: string; onChange: (k: string) => void; layoutId: string;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
-      {items.map((it) => {
-        const active = it.key === value;
-        return (
-          <button key={it.key} onClick={() => onChange(it.key)} title={it.hint}
-            className={`relative rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${active ? "text-slate-100" : "text-slate-400 hover:text-slate-200"}`}>
-            {active && (
-              <motion.span layoutId={layoutId} transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                className="absolute inset-0 rounded-xl bg-indigo-500/25 ring-1 ring-indigo-400/40" />
-            )}
-            <span className="relative flex items-center gap-1.5">
-              {it.color && <span className="h-1.5 w-1.5 rounded-full" style={{ background: it.color }} />}
-              {it.label}
-              <span className={`rounded-md px-1 py-px text-[10px] ${active ? "bg-indigo-500/25 text-indigo-200" : "bg-white/10 text-slate-400"}`}>
-                {it.count}
-              </span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function DapPage() {
   const { data, isLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const { data: monthly } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
-  const all = data?.rows ?? [];
+  const all = useMemo(() => data?.rows ?? [], [data]);
 
   const [area, setArea] = useState("ALL");
   const [kab, setKab] = useState("ALL");
@@ -112,6 +114,7 @@ export default function DapPage() {
     return baseRows.filter((r) => {
       const k = kategori(r, monthIdx);
       if (trx === "AKTIF") return k === "AKTIF";
+      if (trx === "BAWAH") return diBawahTarget(r, monthIdx);
       return k !== "AKTIF" && (alasan === "ALL" || k === alasan);
     });
   }, [baseRows, trx, alasan, monthIdx]);
@@ -143,15 +146,33 @@ export default function DapPage() {
   const sAvg = selected ? selected.omsetYtd / (sAktif || 1) : 0;
   const sPcp = selected && selected.targetToko ? ((selected.bulanan[monthIdx] ?? 0) / selected.targetToko) * 100 : 0;
   const sKat = selected ? kategori(selected, monthIdx) : null;
+  const sGap = selected ? (selected.bulanan[monthIdx] ?? 0) - selected.targetToko : 0;
 
   const trxItems = [
-    { key: "ALL", label: "Semua", count: segBase.total, hint: "Tampilkan semua toko" },
-    { key: "AKTIF", label: "Ada transaksi", count: segBase.perKategori.AKTIF.toko, color: KATEGORI.AKTIF.color, hint: KATEGORI.AKTIF.desc },
-    { key: "TANPA", label: "Tanpa transaksi", count: segBase.tanpa.toko, color: KATEGORI.IDLE2.color, hint: `Berhenti bulan ini, ≥2 bulan kosong, belum pernah transaksi, dan toko tutup` },
+    { key: "ALL" as const, label: <>Semua {countChip(segBase.total)}</>, hint: "Tampilkan semua toko" },
+    {
+      key: "AKTIF" as const,
+      label: <>{dot(KATEGORI.AKTIF.color)}Ada transaksi {countChip(segBase.perKategori.AKTIF.toko)}</>,
+      hint: KATEGORI.AKTIF.desc,
+    },
+    {
+      key: "BAWAH" as const,
+      label: <>{dot("#fbbf24")}Di bawah target {countChip(segBase.bawahToko)}</>,
+      hint: "Ada transaksi bulan ini, tapi realisasinya masih di bawah target toko",
+    },
+    {
+      key: "TANPA" as const,
+      label: <>{dot(KATEGORI.IDLE2.color)}Tanpa transaksi {countChip(segBase.tanpa.toko)}</>,
+      hint: "Berhenti bulan ini, ≥ 2 bulan kosong, belum pernah transaksi, dan toko tutup",
+    },
   ];
   const alasanItems = [
-    { key: "ALL", label: "Semua alasan", count: segBase.tanpa.toko },
-    ...URUTAN_TANPA.map((k) => ({ key: k, label: KATEGORI[k].short, count: segBase.perKategori[k].toko, color: KATEGORI[k].color, hint: KATEGORI[k].desc })),
+    { key: "ALL" as const, label: <>Semua alasan {countChip(segBase.tanpa.toko)}</> },
+    ...URUTAN_TANPA.map((k) => ({
+      key: k,
+      label: <>{dot(KATEGORI[k].color)}{KATEGORI[k].short} {countChip(segBase.perKategori[k].toko)}</>,
+      hint: KATEGORI[k].desc,
+    })),
   ];
 
   return (
@@ -164,40 +185,46 @@ export default function DapPage() {
       </div>
 
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <select className={selectCls} value={monthIdx} onChange={(e) => setMonthIdx(Number(e.target.value))}>
-            {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
-          </select>
-          <select className={selectCls} value={area} onChange={(e) => { setArea(e.target.value); setKab("ALL"); setKec("ALL"); }}>
-            <option value="ALL">Semua Area</option>
-            {areas.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <select className={selectCls} value={kab} onChange={(e) => { setKab(e.target.value); setKec("ALL"); }}>
-            <option value="ALL">Semua Kabupaten</option>
-            {kabs.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-          <select className={selectCls} value={kec} onChange={(e) => setKec(e.target.value)}>
-            <option value="ALL">Semua Kecamatan</option>
-            {kecs.map((k) => <option key={k} value={k}>{k}</option>)}
-          </select>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔍 Cari apa saja…"
-            className="min-w-56 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-indigo-400/50 focus:outline-none" />
-        </div>
+        <FilterBar>
+          <FilterGroup label="Periode">
+            <FilterSelect value={monthIdx} onChange={(v) => setMonthIdx(Number(v))} title="Bulan laporan">
+              {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+            </FilterSelect>
+          </FilterGroup>
+          <FilterGroup label="Wilayah">
+            <FilterSelect value={area} onChange={(v) => { setArea(v); setKab("ALL"); setKec("ALL"); }} title="Area">
+              <option value="ALL">Semua Area</option>
+              {areas.map((a) => <option key={a} value={a}>{a}</option>)}
+            </FilterSelect>
+            <FilterSelect value={kab} onChange={(v) => { setKab(v); setKec("ALL"); }} title="Kabupaten">
+              <option value="ALL">Semua Kabupaten</option>
+              {kabs.map((k) => <option key={k} value={k}>{k}</option>)}
+            </FilterSelect>
+            <FilterSelect value={kec} onChange={setKec} title="Kecamatan">
+              <option value="ALL">Semua Kecamatan</option>
+              {kecs.map((k) => <option key={k} value={k}>{k}</option>)}
+            </FilterSelect>
+          </FilterGroup>
+          <FilterGroup grow>
+            <FilterSearch value={q} onChange={setQ} placeholder="🔍 Cari toko / ADM / status…" />
+          </FilterGroup>
+        </FilterBar>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="pl-1 text-[10px] uppercase tracking-wider text-slate-500">Transaksi</span>
-          <Seg items={trxItems} value={trx} onChange={(k) => setTrx(k as TrxFilter)} layoutId="dap-trx" />
-        </div>
-
-        <AnimatePresence initial={false}>
-          {trx === "TANPA" && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="flex flex-wrap items-center gap-2 overflow-hidden">
-              <span className="pl-1 text-[10px] uppercase tracking-wider text-slate-500">Alasan</span>
-              <Seg items={alasanItems} value={alasan} onChange={(k) => setAlasan(k as AlasanFilter)} layoutId="dap-alasan" />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <FilterBar>
+          <FilterGroup label="Transaksi">
+            <FilterPills items={trxItems} value={trx} onChange={(k) => setTrx(k as TrxFilter)} id="dap-trx" size="sm" />
+          </FilterGroup>
+          <AnimatePresence initial={false}>
+            {trx === "TANPA" && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="min-w-0">
+                <FilterGroup label="Alasan">
+                  <FilterPills items={alasanItems} value={alasan} onChange={(k) => setAlasan(k as AlasanFilter)} id="dap-alasan" size="sm" />
+                </FilterGroup>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </FilterBar>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -205,14 +232,17 @@ export default function DapPage() {
           <CountUp value={totalToko} className="block text-2xl font-bold" />
         </Kpi>
         <Kpi label={`Total Act (${MONTHS[monthIdx]})`} delay={0.08}
-          sub={lossPct > 0 ? `${lossPct.toFixed(1)}% target hilang karena toko tanpa transaksi` : "Tidak ada nominal hilang pada filter ini"}>
+          sub={`${seg.bawahToko} toko transaksi masih di bawah target (kurang ${rpShort(seg.bawahNominal)})`}>
           <CountUp value={act} format={rp} className="block text-2xl font-bold text-emerald-300" />
         </Kpi>
-        <Kpi label="Total Target" delay={0.16} sub={`${totalToko} toko terfilter`}>
+        <Kpi label="Total Target" delay={0.16}
+          sub={storeScoped ? `${totalToko} toko terfilter` : `target resmi bulanan · ${totalToko} toko`}>
           <CountUp value={totalTarget} format={rp} className="block text-2xl font-bold" />
         </Kpi>
         <Kpi label="Pencapaian" delay={0.24}
-          sub={`Toko tanpa transaksi: ${seg.pctTokoTanpa.toFixed(1)}% dari total toko`}>
+          sub={storeScoped
+            ? `target ${rpShort(seg.targetTotal)} dari ${totalToko} toko terfilter`
+            : `Toko tanpa transaksi: ${seg.pctTokoTanpa.toFixed(1)}% dari total toko`}>
           <div className="flex items-center gap-2">
             <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="text-2xl font-bold" />
             <Icn e={badge.emoji} className="h-3.5 w-3.5" />
@@ -225,52 +255,90 @@ export default function DapPage() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-rose-400/25 bg-rose-500/[0.06] p-4">
+        className={`rounded-2xl border p-4 ${seg.hilangNominal > 0 ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-amber-400/20 bg-amber-500/[0.05]"}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wider text-rose-300">Nominal Hilang · {MONTHS[monthIdx]}</p>
+            <p className={`text-xs uppercase tracking-wider ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`}>
+              {seg.hilangNominal > 0 ? `Nominal Hilang · ${MONTHS[monthIdx]}` : `Gap Target · ${MONTHS[monthIdx]}`}
+            </p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <CountUp value={seg.hilangNominal} format={rp} className="text-2xl font-bold text-rose-300" />
+              <CountUp value={seg.hilangNominal > 0 ? seg.hilangNominal : seg.gapNominal} format={rp}
+                className={`text-2xl font-bold ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`} />
               <span className="text-xs text-slate-400">
-                {seg.hilangToko} toko · {lossPct.toFixed(1)}% dari target {rp(totalTarget)}
+                {seg.hilangNominal > 0
+                  ? `${seg.hilangToko} toko · ${lossPct.toFixed(1)}% dari target ${rp(totalTarget)}`
+                  : `${seg.targetTotal ? ((seg.gapNominal / seg.targetTotal) * 100).toFixed(1) : "0,0"}% target belum terealisasi`}
               </span>
             </div>
           </div>
-          <p className="max-w-xs text-[11px] leading-relaxed text-slate-500">
-            Dihitung dari target toko yang sudah pernah transaksi lalu 0 di bulan terpilih.
-            {seg.bukanKerugianToko > 0 && (
-              <> {seg.perKategori.BELUM.toko} toko belum pernah transaksi dan {seg.perKategori.TUTUP.toko} toko tutup/DO NOT ORDER
-                (target {rpShort(seg.bukanKerugianNominal)}) tidak dihitung sebagai kerugian.</>
-            )}
-          </p>
+          {seg.hilangNominal > 0 && (
+            <p className="max-w-xs text-[11px] leading-relaxed text-slate-500">
+              Dihitung dari target toko yang sudah pernah transaksi lalu 0 di bulan terpilih.
+              {seg.bukanKerugianToko > 0 && (
+                <> {seg.perKategori.BELUM.toko} toko belum pernah transaksi dan {seg.perKategori.TUTUP.toko} toko tutup/DO NOT ORDER
+                  (target {rpShort(seg.bukanKerugianNominal)}) tidak dihitung sebagai kerugian.</>
+              )}
+            </p>
+          )}
         </div>
 
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(lossPct, 100)}%` }}
-            transition={{ duration: 1.1, ease: "easeOut" }} className="h-full rounded-full bg-gradient-to-r from-rose-400 to-orange-400" />
-        </div>
-
-        {seg.tanpa.toko > 0 ? (
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {URUTAN_TANPA.filter((k) => seg.perKategori[k].toko > 0).map((k) => (
-              <button key={k} onClick={() => { setTrx("TANPA"); setAlasan(k); }}
-                title={`Klik untuk memfilter: ${KATEGORI[k].desc}`}
-                className={`rounded-xl border px-2.5 py-2 text-left transition-colors hover:bg-white/5 ${isKerugian(k) ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
-                <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-400">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: KATEGORI[k].color }} />
-                  {KATEGORI[k].short}
-                </p>
-                <p className="text-sm font-bold text-slate-100">{seg.perKategori[k].toko} toko</p>
-                <p className={`text-[10px] ${isKerugian(k) ? "text-rose-300" : "text-slate-500"}`}>
-                  {isKerugian(k) ? `hilang ${rpShort(seg.perKategori[k].target)}` : `target ${rpShort(seg.perKategori[k].target)} · bukan kerugian`}
-                </p>
-              </button>
-            ))}
+        {seg.hilangNominal > 0 && (
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(lossPct, 100)}%` }}
+              transition={{ duration: 1.1, ease: "easeOut" }} className="h-full rounded-full bg-gradient-to-r from-rose-400 to-orange-400" />
           </div>
-        ) : (
-          <p className="mt-3 text-[11px] text-slate-500">
-            Tidak ada toko tanpa transaksi pada filter ini — nominal hilang Rp0.
-          </p>
+        )}
+
+        {/* dari mana sisa gap target berasal — target − realisasi, bukan cuma toko 0 */}
+        <div className={`mt-4 border-t pt-3 ${seg.hilangNominal > 0 ? "border-rose-400/15" : "border-amber-400/15"}`}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">Komposisi gap target</p>
+            <p className="text-[11px] text-slate-500">
+              Target toko {rp(seg.targetTotal)} − realisasi {rp(seg.aktualTotal)} ={" "}
+              <span className="font-semibold tabular-nums text-slate-300">{rp(seg.gapNominal)}</span>
+            </p>
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-2 lg:grid-cols-4">
+            <GapTile label="Hilang" toko={seg.hilangToko} tone="loss"
+              sub={`target 0 transaksi · ${rpShort(seg.hilangNominal)}`}
+              active={trx === "TANPA"}
+              onClick={() => { setTrx("TANPA"); setAlasan("ALL"); }} />
+            <GapTile label="Belum / tutup" toko={seg.bukanKerugianToko} tone="neutral"
+              sub={`target ${rpShort(seg.bukanKerugianNominal)} · bukan kerugian`} />
+            <GapTile label="Transaksi di bawah target" toko={seg.bawahToko} tone="under"
+              sub={`kurang ${rpShort(seg.bawahNominal)}`}
+              active={trx === "BAWAH"}
+              onClick={() => setTrx("BAWAH")} />
+            <GapTile label="≥ target" toko={seg.atasToko} tone="over"
+              sub={`surplus ${rpShort(seg.atasNominal)}`} />
+          </div>
+          {seg.atasNominal > 0 && (
+            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+              Gap di atas sudah dikurangi surplus {rpShort(seg.atasNominal)} dari {seg.atasToko} toko yang melampaui target.
+            </p>
+          )}
+        </div>
+
+        {seg.tanpa.toko > 0 && (
+          <div className="mt-4 border-t border-rose-400/15 pt-3">
+            <p className="text-[10px] uppercase tracking-wider text-slate-400">Rincian toko tanpa transaksi</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {URUTAN_TANPA.filter((k) => seg.perKategori[k].toko > 0).map((k) => (
+                <button key={k} onClick={() => { setTrx("TANPA"); setAlasan(k); }}
+                  title={`Klik untuk memfilter: ${KATEGORI[k].desc}`}
+                  className={`rounded-xl border px-2.5 py-2 text-left transition-colors hover:bg-white/5 ${isKerugian(k) ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
+                  <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-400">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ background: KATEGORI[k].color }} />
+                    {KATEGORI[k].short}
+                  </p>
+                  <p className="text-sm font-bold text-slate-100">{seg.perKategori[k].toko} toko</p>
+                  <p className={`text-[10px] ${isKerugian(k) ? "text-rose-300" : "text-slate-500"}`}>
+                    {isKerugian(k) ? `hilang ${rpShort(seg.perKategori[k].target)}` : `target ${rpShort(seg.perKategori[k].target)} · bukan kerugian`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </motion.div>
 
@@ -319,7 +387,7 @@ export default function DapPage() {
             <button onClick={() => setSelected(null)}
               className="rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200">✕ Tutup</button>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Chip label="Omset YTD" value={rp(selected.omsetYtd)} accent="text-emerald-300" />
             <Chip label="Target/bulan" value={rp(selected.targetToko)} />
             <Chip label="Bulan aktif" value={`${sAktif} bln`} />
@@ -327,6 +395,9 @@ export default function DapPage() {
             <Chip label={`PCP ${MONTHS[monthIdx]}`}
               value={sPcp > 0 ? `${sPcp.toFixed(0)}%` : "—"}
               accent={sPcp >= 100 ? "text-emerald-300" : sPcp >= 85 ? "text-yellow-300" : "text-orange-300"} />
+            <Chip label="Gap bln ini"
+              value={!selected.targetToko ? "—" : sGap < 0 ? `−${rpShort(-sGap)}` : `+${rpShort(sGap)}`}
+              accent={sGap < 0 ? "text-amber-300" : "text-emerald-300"} />
             {sKat && (
               <Chip label="Kategori" dot={KATEGORI[sKat].color}
                 value={isKerugian(sKat) ? `${KATEGORI[sKat].short} · hilang ${rpShort(selected.targetToko)}` : KATEGORI[sKat].short}
