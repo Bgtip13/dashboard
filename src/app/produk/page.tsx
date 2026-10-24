@@ -80,7 +80,7 @@ function Pills<T extends string>({ items, value, onChange, id }: {
 }
 
 const selectCls =
-  "h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60";
+  "h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900";
 
 function StatCard({ label, icon, delay, children }: {
   label: string; icon: string; delay: number; children: React.ReactNode;
@@ -199,21 +199,21 @@ export default function ProdukPage() {
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
         <Pills items={["ALL", ...areas] as const} value={area} onChange={setArea} id="p-area" />
         <select value={kategori} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
-          <option className="bg-slate-900" value="ALL">Semua Kategori</option>
-          {kategoris.map((k) => <option key={k} className="bg-slate-900" value={k}>{k}</option>)}
+          <option value="ALL">Semua Kategori</option>
+          {kategoris.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
         <span className="flex items-center gap-2">
           <select value={brand} onChange={(e) => setBrand(e.target.value)} className={selectCls}>
-            <option className="bg-slate-900" value="ALL">Semua Brand</option>
-            {brands.map((b) => <option key={b} className="bg-slate-900" value={b}>{b}</option>)}
+          <option value="ALL">Semua Brand</option>
+          {brands.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
           {brand !== "ALL" && <BrandLogo brand={brand} size={30} />}
         </span>
         <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
-          <option className="bg-slate-900" value="pj-desc">Penjualan tertinggi</option>
-          <option className="bg-slate-900" value="pj-asc">Penjualan terendah</option>
-          <option className="bg-slate-900" value="qty-desc">Qty terbanyak</option>
-          <option className="bg-slate-900" value="qty-asc">Qty tersedikit</option>
+          <option value="pj-desc">Penjualan tertinggi</option>
+          <option value="pj-asc">Penjualan terendah</option>
+          <option value="qty-desc">Qty terbanyak</option>
+          <option value="qty-asc">Qty tersedikit</option>
         </select>
         <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari barang / pelanggan / kecamatan…"
           className="h-10 min-w-56 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
