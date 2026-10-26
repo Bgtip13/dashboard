@@ -26,6 +26,15 @@ const SARAN = [
 const uniq = (xs: (string | undefined)[]) =>
   Array.from(new Set(xs.filter((x): x is string => Boolean(x && x.trim())).map((x) => x.trim()))).slice(0, 400);
 
+/** Sapaan sesuai jam (dipakai saat panel dibuka, jadi aman dari hydration mismatch). */
+function sapaWaktu(): string {
+  const jam = new Date().getHours();
+  if (jam < 11) return "Selamat pagi";
+  if (jam < 15) return "Selamat siang";
+  if (jam < 18) return "Selamat sore";
+  return "Selamat malam";
+}
+
 /** Opsi filter diambil dari data yang sudah dimuat halaman lain (kalau ada). */
 function collectOptions(qc: QueryClient): AsistenOptions {
   const dap = qc.getQueryData<DapCache>(["dap"]);
@@ -86,7 +95,11 @@ export default function Asisten() {
       pushMsg({ id: nextId(), role: "ai", text: data.reply, action: data.action });
       if (data.action) router.push(actionUrl(data.action));
     } catch (err) {
-      pushMsg({ id: nextId(), role: "ai", text: `Maaf, ada kendala: ${(err as Error).message}` });
+      pushMsg({
+        id: nextId(),
+        role: "ai",
+        text: `Maaf Bos, ada gangguan di sistem: ${(err as Error).message}`,
+      });
     } finally {
       setBusy(false);
     }
@@ -132,7 +145,7 @@ export default function Asisten() {
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> online
                   </span>
                 </p>
-                <p className="text-sm text-slate-400">Asisten SPV — Halo, bos sedang butuh apa?</p>
+                <p className="text-sm text-slate-400">Asisten SPV — Semua sistem siap, Bos.</p>
               </div>
               <button onClick={() => setOpen(false)} aria-label="Tutup F.R.I.D.A.Y"
                 className="rounded-lg border border-white/10 px-2.5 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200">✕</button>
@@ -141,8 +154,10 @@ export default function Asisten() {
             <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3.5">
               {messages.length === 0 && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 text-sm leading-relaxed text-slate-300">
-                  Halo, saya <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> — asisten data SPV.
-                  Sebutkan halaman atau data yang mau dibuka, contohnya
+                  {sapaWaktu()}, Bos. <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> online
+                  dan semua sistem siap. Data PCP sudah terhubung.
+                  <br />
+                  Mau saya bukakan halaman atau data yang mana? Contohnya
                   <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang bulan ini”</span>.
                 </div>
               )}
@@ -162,7 +177,7 @@ export default function Asisten() {
                         onClick={() => { if (m.action) router.push(actionUrl(m.action)); }}
                         className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-indigo-300 hover:text-indigo-200"
                       >
-                        Buka lagi →
+                        Tampilkan lagi →
                       </button>
                     )}
                   </div>
@@ -200,7 +215,7 @@ export default function Asisten() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Perintah untuk F.R.I.D.A.Y…"
+                placeholder="Perintah, Bos…"
                 aria-label="Perintah untuk F.R.I.D.A.Y"
                 className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60"
               />
