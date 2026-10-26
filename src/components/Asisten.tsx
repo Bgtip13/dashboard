@@ -132,7 +132,7 @@ export default function Asisten() {
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> online
                   </span>
                 </p>
-                <p className="text-sm text-slate-400">Asisten data PCP — buka & filter pakai bahasa sehari-hari</p>
+                <p className="text-sm text-slate-400">Asisten SPV — Halo, bos sedang butuh apa?</p>
               </div>
               <button onClick={() => setOpen(false)} aria-label="Tutup F.R.I.D.A.Y"
                 className="rounded-lg border border-white/10 px-2.5 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200">✕</button>
@@ -141,7 +141,7 @@ export default function Asisten() {
             <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3.5">
               {messages.length === 0 && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 text-sm leading-relaxed text-slate-300">
-                  Halo, saya <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> — asisten data PCP Dashboard.
+                  Halo, saya <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> — asisten data SPV.
                   Sebutkan halaman atau data yang mau dibuka, contohnya
                   <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang bulan ini”</span>.
                 </div>
