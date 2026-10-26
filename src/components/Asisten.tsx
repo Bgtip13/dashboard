@@ -19,7 +19,7 @@ type MonthlyCache = { rows?: { area?: string }[] };
 const SARAN = [
   "Buka DAP toko tanpa transaksi",
   "Toko omset tertinggi kabupaten Sleman",
-  "Produk qty terbanyak brand Wardah",
+  "Produk qty terbanyak brand Me-o",
   "Pencapaian mingguan area Solo minggu 2",
 ];
 
