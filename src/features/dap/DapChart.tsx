@@ -22,7 +22,7 @@ function option(values: number[], loss: number[], sel: number, isDark: boolean):
       axisPointer: { type: "shadow" },
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: txt1, fontSize: 12 },
+      textStyle: { color: txt1, fontSize: 13 },
       formatter: (params: unknown) => {
         const arr = (Array.isArray(params) ? params : []) as { axisValue?: string; seriesName?: string; value?: number }[];
         if (!arr.length) return "";
@@ -39,19 +39,19 @@ function option(values: number[], loss: number[], sel: number, isDark: boolean):
     },
     legend: {
       top: 0, right: 0, itemWidth: 10, itemHeight: 10, itemGap: 12,
-      textStyle: { color: txt, fontSize: 11 },
+      textStyle: { color: txt, fontSize: 13 },
       data: ["Aktual", "Hilang"],
     },
     grid: { left: 8, right: 8, bottom: 0, top: 32, containLabel: true },
     xAxis: {
       type: "category", data: MONTH_SHORT,
-      axisLabel: { color: txt, fontWeight: 600 },
+      axisLabel: { color: txt, fontWeight: 600, fontSize: 13 },
       axisLine: { lineStyle: { color: grid } },
     },
     yAxis: {
       type: "value",
       splitLine: { lineStyle: { color: grid } },
-      axisLabel: { color: txt2, formatter: (v: number) => rpShort(v).replace("Rp", "") },
+      axisLabel: { color: txt2, fontSize: 13, formatter: (v: number) => rpShort(v).replace("Rp", "") },
     },
     series: [
       {
@@ -95,5 +95,5 @@ export default function DapChart({ values, loss, selectedMonth }: {
 }) {
   const { isDark } = useTheme();
   const ref = useECharts(option(values, loss, selectedMonth, isDark), [values, loss, selectedMonth, isDark]);
-  return <div ref={ref} className="h-72 w-full" />;
+  return <div ref={ref} className="h-80 w-full" />;
 }

@@ -30,7 +30,7 @@ function option(ringkas: Ringkasan, isDark: boolean): EChartsOption {
       avoidLabelOverlap: true,
       label: { show: false },
       labelLine: { show: false },
-      itemStyle: { borderColor: isDark ? "#0b1020" : "#eef2f8", borderWidth: 2 },
+      itemStyle: { borderColor: isDark ? "#0b1020" : "#ffffff", borderWidth: 2 },
       emphasis: { scale: true, scaleSize: 5 },
       data: slices.map((s) => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
       animationDuration: 900,
@@ -49,14 +49,14 @@ export default function KomposisiToko({ ringkas }: { ringkas: Ringkasan }) {
 
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
-      <div className="relative h-44 w-full shrink-0 sm:w-1/2">
+      <div className="relative h-52 w-full shrink-0 sm:w-1/2">
         <div ref={ref} className="h-full w-full" />
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold text-slate-100">{ringkas.total.toLocaleString("id-ID")}</span>
-          <span className="text-[10px] uppercase tracking-wider text-slate-500">toko</span>
+          <span className="text-2xl font-bold text-slate-100">{ringkas.total.toLocaleString("id-ID")}</span>
+          <span className="text-[0.75rem] uppercase tracking-wider text-slate-500">toko</span>
         </div>
       </div>
-      <ul className="w-full flex-1 space-y-2 text-xs">
+      <ul className="w-full flex-1 space-y-2.5 text-sm">
         {baris.map((b) => {
           const pct = ringkas.total ? (b.toko / ringkas.total) * 100 : 0;
           return (
@@ -65,14 +65,14 @@ export default function KomposisiToko({ ringkas }: { ringkas: Ringkasan }) {
                 <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: b.color }} />
                 <span className="min-w-0">
                   <span className="block truncate text-slate-300" title={KATEGORI[b.key].desc}>{b.label}</span>
-                  <span className={`block text-[10px] ${isKerugian(b.key) ? "text-rose-300" : "text-slate-500"}`}>
+                  <span className={`block text-[0.75rem] ${isKerugian(b.key) ? "text-rose-300" : "text-slate-500"}`}>
                     {b.toko === 0 ? "—" : `${rpShort(b.target)}${isKerugian(b.key) ? " hilang" : " target"}`}
                   </span>
                 </span>
               </span>
               <span className="shrink-0 text-right">
                 <span className="block font-bold text-slate-100">{b.toko}</span>
-                <span className="block text-[10px] text-slate-500">{pct.toFixed(1)}%</span>
+                <span className="block text-[0.75rem] text-slate-500">{pct.toFixed(1)}%</span>
               </span>
             </li>
           );

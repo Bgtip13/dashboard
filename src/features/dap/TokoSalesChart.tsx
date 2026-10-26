@@ -16,19 +16,20 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
       trigger: "axis", valueFormatter: (v) => rpShort(Number(v)),
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a" },
+      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 13 },
     },
-    legend: { top: 0, textStyle: { color: txt, fontSize: 11 }, itemWidth: 14 },
+    legend: { top: 0, textStyle: { color: txt, fontSize: 13 }, itemWidth: 16 },
+
     grid: { left: 8, right: 8, bottom: 0, top: 30, containLabel: true },
     xAxis: {
       type: "category", data: MONTH_SHORT,
-      axisLabel: { color: txt },
+      axisLabel: { color: txt, fontSize: 13 },
       axisLine: { lineStyle: { color: grid } },
     },
     yAxis: {
       type: "value",
       splitLine: { lineStyle: { color: grid } },
-      axisLabel: { color: txt2, formatter: (v: number) => rpShort(v).replace("Rp", "") },
+      axisLabel: { color: txt2, fontSize: 13, formatter: (v: number) => rpShort(v).replace("Rp", "") },
     },
     series: [
       {
@@ -38,7 +39,7 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
           data: [{ type: "max", name: "Terbaik" }],
           symbolSize: 50, itemStyle: { color: "#f59e0b" },
           label: {
-            color: "#78350f", fontWeight: 800, fontSize: 10,
+            color: "#78350f", fontWeight: 800, fontSize: 12,
             formatter: (p: { value: unknown }) => {
               const n = Number(p.value);
               return isFinite(n) ? rpShort(n) : "";
@@ -59,5 +60,5 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
 export default function TokoSalesChart({ values, target }: { values: number[]; target: number }) {
   const { isDark } = useTheme();
   const ref = useECharts(option(values, target, isDark), [values, target, isDark]);
-  return <div ref={ref} className="h-56 w-full" />;
+  return <div ref={ref} className="h-64 w-full" />;
 }

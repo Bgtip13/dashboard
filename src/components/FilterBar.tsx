@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 /** Pembungkus baris filter — satu gaya di semua halaman */
 export function FilterBar({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className}`}>
       {children}
     </div>
   );
@@ -16,7 +16,7 @@ export function FilterGroup({ label, children, grow = false }: {
 }) {
   return (
     <div className={`flex min-w-0 items-center gap-2 ${grow ? "flex-1" : ""}`}>
-      {label && <span className="shrink-0 text-[10px] uppercase tracking-wider text-slate-500">{label}</span>}
+      {label && <span className="shrink-0 text-[0.75rem] uppercase tracking-wider text-slate-500">{label}</span>}
       {children}
     </div>
   );
@@ -40,7 +40,7 @@ export function FilterPills<T extends string>({
   size?: "sm" | "md";
   className?: string;
 }) {
-  const pad = size === "sm" ? "px-3 py-1.5 text-xs" : "px-4 py-1.5 text-sm";
+  const pad = size === "sm" ? "px-4 py-2 text-sm" : "px-5 py-2 text-base";
   return (
     <div className={`flex flex-wrap items-center gap-1 rounded-full border border-white/10 bg-white/5 p-1 ${className}`}>
       {items.map((it) => {
@@ -70,7 +70,7 @@ export function FilterSelect({ value, onChange, children, className = "", title 
 }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} title={title}
-      className={`h-9 rounded-xl border border-white/10 bg-white/5 px-2.5 text-xs text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900 ${className}`}>
+      className={`h-11 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900 ${className}`}>
       {children}
     </select>
   );
@@ -85,6 +85,6 @@ export function FilterSearch({ value, onChange, placeholder, className = "" }: {
 }) {
   return (
     <input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-      className={`h-9 min-w-48 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60 ${className}`} />
+      className={`h-11 min-w-56 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60 ${className}`} />
   );
 }

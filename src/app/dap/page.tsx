@@ -25,12 +25,12 @@ const MONTHS = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", 
 
 /** titik warna kategori + jumlah, dipakai di pill filter */
 const dot = (c: string) => <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: c }} />;
-const countChip = (n: React.ReactNode) => <span className="rounded-md bg-white/10 px-1 py-px text-[10px] tabular-nums">{n}</span>;
+const countChip = (n: React.ReactNode) => <span className="rounded-md bg-white/10 px-1 py-px text-[0.75rem] tabular-nums">{n}</span>;
 
 function Chip({ label, value, accent, dot }: { label: string; value: string; accent?: string; dot?: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-      <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="text-[0.75rem] uppercase tracking-wider text-slate-500">{label}</p>
       <p className={`flex items-center gap-1.5 text-sm font-bold ${accent ?? "text-slate-100"}`}>
         {dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: dot }} />}
         {value}
@@ -51,12 +51,12 @@ function GapTile({ label, toko, sub, tone, onClick, active }: {
   const cls = `rounded-xl border px-2.5 py-2 text-left transition-colors ${active ? "border-indigo-400/50 bg-indigo-500/10" : "border-white/10 bg-white/[0.03]"}`;
   const body = (
     <>
-      <p className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide text-slate-400">
+      <p className="flex items-center justify-between gap-2 text-[0.75rem] uppercase tracking-wide text-slate-400">
         <span className="min-w-0 truncate" title={label}>{label}</span>
-        {onClick && <span className="shrink-0 text-[9px] text-slate-500">{active ? "aktif" : "filter"}</span>}
+        {onClick && <span className="shrink-0 text-[0.7rem] text-slate-500">{active ? "aktif" : "filter"}</span>}
       </p>
       <p className={`mt-0.5 text-sm font-bold ${color}`}>{toko} toko</p>
-      <p className="truncate text-[10px] text-slate-500" title={sub}>{sub}</p>
+      <p className="truncate text-[0.75rem] text-slate-500" title={sub}>{sub}</p>
     </>
   );
   if (!onClick) return <div className={cls}>{body}</div>;
@@ -72,10 +72,10 @@ function Kpi({ label, sub, delay, children }: {
 }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-      <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
+      className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <p className="text-sm uppercase tracking-wider text-slate-400">{label}</p>
       <div className="mt-1">{children}</div>
-      {sub && <p className="mt-1 text-[11px] leading-tight text-slate-500">{sub}</p>}
+      {sub && <p className="mt-1 text-[0.8rem] leading-tight text-slate-500">{sub}</p>}
     </motion.div>
   );
 }
@@ -206,9 +206,9 @@ function DapPageContent() {
   ];
 
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-8 py-8">
       <div>
-        <h1 className="text-2xl font-bold">DAP — Rincian Detail Toko</h1>
+        <h1 className="text-3xl font-bold">DAP — Rincian Detail Toko</h1>
         <p className="text-sm text-slate-400">
           {isLoading ? "Memuat…" : `${rows.length === all.length ? all.length : `${rows.length} dari ${all.length}`} toko · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
         </p>
@@ -259,22 +259,22 @@ function DapPageContent() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Total Toko" delay={0} sub={`${seg.aktif.toko} ada transaksi · ${seg.tanpa.toko} tanpa transaksi`}>
-          <CountUp value={totalToko} className="block text-2xl font-bold" />
+          <CountUp value={totalToko} className="block text-3xl font-bold" />
         </Kpi>
         <Kpi label={`Total Act (${MONTHS[monthIdx]})`} delay={0.08}
           sub={`${seg.bawahToko} toko transaksi masih di bawah target (kurang ${rpShort(seg.bawahNominal)})`}>
-          <CountUp value={act} format={rp} className="block text-2xl font-bold text-emerald-300" />
+          <CountUp value={act} format={rp} className="block text-3xl font-bold text-emerald-300" />
         </Kpi>
         <Kpi label="Total Target" delay={0.16}
           sub={storeScoped ? `${totalToko} toko terfilter` : `target resmi bulanan · ${totalToko} toko`}>
-          <CountUp value={totalTarget} format={rp} className="block text-2xl font-bold" />
+          <CountUp value={totalTarget} format={rp} className="block text-3xl font-bold" />
         </Kpi>
         <Kpi label="Pencapaian" delay={0.24}
           sub={storeScoped
             ? `target ${rpShort(seg.targetTotal)} dari ${totalToko} toko terfilter`
             : `Toko tanpa transaksi: ${seg.pctTokoTanpa.toFixed(1)}% dari total toko`}>
           <div className="flex items-center gap-2">
-            <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="text-2xl font-bold" />
+            <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="text-3xl font-bold" />
             <Icn e={badge.emoji} className="h-3.5 w-3.5" />
           </div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -288,13 +288,13 @@ function DapPageContent() {
         className={`rounded-2xl border p-4 ${seg.hilangNominal > 0 ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-amber-400/20 bg-amber-500/[0.05]"}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className={`text-xs uppercase tracking-wider ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`}>
+            <p className={`text-sm uppercase tracking-wider ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`}>
               {seg.hilangNominal > 0 ? `Nominal Hilang · ${MONTHS[monthIdx]}` : `Gap Target · ${MONTHS[monthIdx]}`}
             </p>
             <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <CountUp value={seg.hilangNominal > 0 ? seg.hilangNominal : seg.gapNominal} format={rp}
-                className={`text-2xl font-bold ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`} />
-              <span className="text-xs text-slate-400">
+                className={`text-3xl font-bold ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`} />
+              <span className="text-sm text-slate-400">
                 {seg.hilangNominal > 0
                   ? `${seg.hilangToko} toko · ${lossPct.toFixed(1)}% dari target ${rp(totalTarget)}`
                   : `${seg.targetTotal ? ((seg.gapNominal / seg.targetTotal) * 100).toFixed(1) : "0,0"}% target belum terealisasi`}
@@ -302,7 +302,7 @@ function DapPageContent() {
             </div>
           </div>
           {seg.hilangNominal > 0 && (
-            <p className="max-w-xs text-[11px] leading-relaxed text-slate-500">
+            <p className="max-w-xs text-[0.8rem] leading-relaxed text-slate-500">
               Dihitung dari target toko yang sudah pernah transaksi lalu 0 di bulan terpilih.
               {seg.bukanKerugianToko > 0 && (
                 <> {seg.perKategori.BELUM.toko} toko belum pernah transaksi dan {seg.perKategori.TUTUP.toko} toko tutup/DO NOT ORDER
@@ -322,8 +322,8 @@ function DapPageContent() {
         {/* dari mana sisa gap target berasal — target − realisasi, bukan cuma toko 0 */}
         <div className={`mt-4 border-t pt-3 ${seg.hilangNominal > 0 ? "border-rose-400/15" : "border-amber-400/15"}`}>
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">Komposisi gap target</p>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[0.75rem] uppercase tracking-wider text-slate-400">Komposisi gap target</p>
+            <p className="text-[0.8rem] text-slate-500">
               Target toko {rp(seg.targetTotal)} − realisasi {rp(seg.aktualTotal)} ={" "}
               <span className="font-semibold tabular-nums text-slate-300">{rp(seg.gapNominal)}</span>
             </p>
@@ -343,7 +343,7 @@ function DapPageContent() {
               sub={`surplus ${rpShort(seg.atasNominal)}`} />
           </div>
           {seg.atasNominal > 0 && (
-            <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+            <p className="mt-2 text-[0.75rem] leading-relaxed text-slate-500">
               Gap di atas sudah dikurangi surplus {rpShort(seg.atasNominal)} dari {seg.atasToko} toko yang melampaui target.
             </p>
           )}
@@ -351,18 +351,18 @@ function DapPageContent() {
 
         {seg.tanpa.toko > 0 && (
           <div className="mt-4 border-t border-rose-400/15 pt-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-400">Rincian toko tanpa transaksi</p>
+            <p className="text-[0.75rem] uppercase tracking-wider text-slate-400">Rincian toko tanpa transaksi</p>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {URUTAN_TANPA.filter((k) => seg.perKategori[k].toko > 0).map((k) => (
                 <button key={k} onClick={() => { setTrx("TANPA"); setAlasan(k); }}
                   title={`Klik untuk memfilter: ${KATEGORI[k].desc}`}
                   className={`rounded-xl border px-2.5 py-2 text-left transition-colors hover:bg-white/5 ${isKerugian(k) ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-white/10 bg-white/[0.03]"}`}>
-                  <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-slate-400">
+                  <p className="flex items-center gap-1.5 text-[0.75rem] uppercase tracking-wide text-slate-400">
                     <span className="h-1.5 w-1.5 rounded-full" style={{ background: KATEGORI[k].color }} />
                     {KATEGORI[k].short}
                   </p>
                   <p className="text-sm font-bold text-slate-100">{seg.perKategori[k].toko} toko</p>
-                  <p className={`text-[10px] ${isKerugian(k) ? "text-rose-300" : "text-slate-500"}`}>
+                  <p className={`text-[0.75rem] ${isKerugian(k) ? "text-rose-300" : "text-slate-500"}`}>
                     {isKerugian(k) ? `hilang ${rpShort(seg.perKategori[k].target)}` : `target ${rpShort(seg.perKategori[k].target)} · bukan kerugian`}
                   </p>
                 </button>
@@ -372,32 +372,32 @@ function DapPageContent() {
         )}
       </motion.div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-xs uppercase tracking-wider text-slate-400">Omset per Bulan (Jan–Des)</p>
-          <p className="text-[11px] text-slate-500">Blok penuh = aktual · blok garis = target toko yang tidak transaksi di bulan itu</p>
+          <p className="text-sm uppercase tracking-wider text-slate-400">Omset per Bulan (Jan–Des)</p>
+          <p className="text-[0.8rem] text-slate-500">Blok penuh = aktual · blok garis = target toko yang tidak transaksi di bulan itu</p>
         </div>
         <DapChart values={monthlyTotals} loss={lossMonthly} selectedMonth={monthIdx} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-xs uppercase tracking-wider text-slate-400">Komposisi Toko · {MONTHS[monthIdx]}</p>
-            <p className="text-[11px] text-slate-500">{seg.tanpa.toko} toko tanpa transaksi ({seg.pctTokoTanpa.toFixed(1)}%)</p>
+            <p className="text-sm uppercase tracking-wider text-slate-400">Komposisi Toko · {MONTHS[monthIdx]}</p>
+            <p className="text-[0.8rem] text-slate-500">{seg.tanpa.toko} toko tanpa transaksi ({seg.pctTokoTanpa.toFixed(1)}%)</p>
           </div>
           <KomposisiToko ringkas={seg} />
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-xs uppercase tracking-wider text-slate-400">Top 8 Kabupaten · Nominal Hilang</p>
-            <p className="text-[11px] text-slate-500">{seg.hilangToko} toko · {rpShort(seg.hilangNominal)}</p>
+            <p className="text-sm uppercase tracking-wider text-slate-400">Top 8 Kabupaten · Nominal Hilang</p>
+            <p className="text-[0.8rem] text-slate-500">{seg.hilangToko} toko · {rpShort(seg.hilangNominal)}</p>
           </div>
           {lossKab.length > 0 ? (
             <HilangPerKabupaten data={lossKab} />
           ) : (
-            <div className="flex h-64 items-center justify-center text-center text-xs text-slate-500">
+            <div className="flex h-64 items-center justify-center text-center text-sm text-slate-500">
               Belum ada nominal hilang pada filter ini.
             </div>
           )}
@@ -410,12 +410,12 @@ function DapPageContent() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-base font-bold text-slate-100">{selected.toko}</p>
-              <p className="text-xs text-slate-400">
+              <p className="text-sm text-slate-400">
                 {selected.area} · {selected.kabupaten} · {selected.kecamatan} · ADM {selected.adm || "-"} · {selected.kelasToko || "-"}/{selected.kelasByr || "-"} · {selected.status}
               </p>
             </div>
             <button onClick={() => setSelected(null)}
-              className="rounded-lg border border-white/10 px-2.5 py-1 text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200">✕ Tutup</button>
+              className="rounded-lg border border-white/10 px-2.5 py-1 text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200">✕ Tutup</button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <Chip label="Omset YTD" value={rp(selected.omsetYtd)} accent="text-emerald-300" />

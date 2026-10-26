@@ -52,7 +52,7 @@ export default function BerandaPage() {
   const tgl = now ? now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "…";
 
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-8 py-8">
       {/* Sapaan + jam */}
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
         <motion.div aria-hidden
@@ -65,44 +65,44 @@ export default function BerandaPage() {
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
             <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="text-sm uppercase tracking-[0.2em] text-slate-400">{tgl}</motion.p>
+              className="text-base uppercase tracking-[0.2em] text-slate-400">{tgl}</motion.p>
             <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-              className="mt-2 text-3xl font-bold sm:text-4xl">
+              className="mt-2 text-4xl font-bold sm:text-5xl">
               {greeting(h)}, <span className="bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">{NAMA}</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }}
-              className="mt-2 text-sm text-slate-400">Semangat mengejar target hari ini 🚀</motion.p>
+              className="mt-2 text-base text-slate-400">Semangat mengejar target hari ini 🚀</motion.p>
           </div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
             className="text-right">
             <p className="text-5xl font-extrabold tabular-nums tracking-tight sm:text-6xl">
               {jam}<span className="animate-pulse text-indigo-300">:</span>{mnt}
-              <span className="text-2xl text-slate-400">:{dtk}</span>
+              <span className="text-3xl text-slate-400">:{dtk}</span>
             </p>
-            <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">Waktu Indonesia Barat</p>
+            <p className="mt-1 text-sm uppercase tracking-widest text-slate-500">Waktu Indonesia Barat</p>
           </motion.div>
         </div>
       </div>
 
       {/* Ringkasan cepat */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: "PCP Bulan Ini", node: (
             <div className="flex items-center gap-2">
-              <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="block text-2xl font-bold" />
-              <Icn e={badge.emoji} className="h-4 w-4" />
+              <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="block text-3xl font-bold" />
+              <Icn e={badge.emoji} className="h-5 w-5" />
             </div>) },
           { label: "Aktual vs Target", node: (
-            <p className="text-sm font-bold">
+            <p className="text-base font-bold">
               <span className="text-emerald-300"><CountUp value={act} format={rp} /></span>
               <span className="text-slate-500"> / <CountUp value={tgt} format={rp} /></span>
             </p>) },
-          { label: "Trip", node: <p className="text-2xl font-bold">{trip.jalan}<span className="text-slate-500">/{trip.total}</span></p> },
-          { label: "Hari Efektif", node: <p className="text-2xl font-bold">{he.berjalan}<span className="text-slate-500">/{he.total}</span></p> },
+          { label: "Trip", node: <p className="text-3xl font-bold">{trip.jalan}<span className="text-slate-500">/{trip.total}</span></p> },
+          { label: "Hari Efektif", node: <p className="text-3xl font-bold">{he.berjalan}<span className="text-slate-500">/{he.total}</span></p> },
         ].map((c, i) => (
           <motion.div key={c.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs uppercase tracking-wider text-slate-400">{c.label}</p>
+            className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+            <p className="text-sm uppercase tracking-wider text-slate-400">{c.label}</p>
             <div className="mt-1">{c.node}</div>
           </motion.div>
         ))}
@@ -110,9 +110,9 @@ export default function BerandaPage() {
 
       {/* Ritme harian */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-        className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="text-xs uppercase tracking-wider text-slate-400">Ritme yang dibutuhkan</p>
-        <p className="mt-1 text-lg font-bold">
+        className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <p className="text-sm uppercase tracking-wider text-slate-400">Ritme yang dibutuhkan</p>
+        <p className="mt-1 text-xl font-bold">
           {sisaHe > 0
             ? <>Kejar <span className="text-amber-300">{rp(kejar)}</span> dalam <span className="text-indigo-300">{sisaHe} hari efektif</span> → ± <span className="text-emerald-300">{rp(ritme)}</span>/hari</>
             : <>Bulan ini sudah selesai — siapkan target bulan depan! 🎯</>}
@@ -130,11 +130,11 @@ export default function BerandaPage() {
             <Link href={n.href}
               className="group block rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-all hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
               <div className="flex items-center justify-between">
-                <Icn e={n.icon} className="h-6 w-6 text-indigo-300" />
+                <Icn e={n.icon} className="h-7 w-7 text-indigo-300" />
                 <span className="text-slate-500 transition-transform group-hover:translate-x-1">→</span>
               </div>
-              <p className="mt-3 font-bold">{n.title}</p>
-              <p className="mt-0.5 text-xs text-slate-400">{n.desc}</p>
+              <p className="mt-3 text-lg font-bold">{n.title}</p>
+              <p className="mt-1 text-sm text-slate-400">{n.desc}</p>
             </Link>
           </motion.div>
         ))}

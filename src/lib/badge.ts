@@ -1,4 +1,22 @@
 export interface BadgeInfo { emoji: string; label: string; color: string; bg: string; }
+
+/** Warna teks badge yang lebih gelap agar terbaca di atas latar terang */
+const LIGHT_TONE: Record<string, string> = {
+  "#facc15": "#a16207",
+  "#f87171": "#b91c1c",
+  "#fb923c": "#c2410c",
+  "#60a5fa": "#1d4ed8",
+  "#fbbf24": "#b45309",
+  "#5eead4": "#0f766e",
+  "#34d399": "#047857",
+  "#94a3b8": "#475569",
+};
+
+/** Warna teks + latar badge yang aman untuk tema aktif */
+export function badgeTone(badge: BadgeInfo, isDark: boolean) {
+  if (isDark) return { color: badge.color, background: badge.bg + "99" };
+  return { color: LIGHT_TONE[badge.color] ?? "#334155", background: badge.bg + "1f" };
+}
 export type Area = "SOLO" | "DIY" | "SEMARANG";
 
 export const AREAS: readonly Area[] = ["SOLO", "DIY", "SEMARANG"];

@@ -16,7 +16,7 @@ export default function BrandLogo({ brand, size = 22, className = "" }: {
   if (!b || err) {
     return (
       <span title={b || "Tanpa brand"}
-        className={`inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-[10px] font-bold text-indigo-300 ${className}`}
+        className={`inline-flex shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-[0.75rem] font-bold text-indigo-300 ${className}`}
         style={{ width: size, height: size }}>
         {(b[0] ?? "?").toUpperCase()}
       </span>

@@ -14,10 +14,10 @@ export interface ProdukChartConfig {
 
 // Geometri (px) — overlay HTML harus cocok persis dengan grid ECharts
 const GRID = { left: 8, right: 8, top: 4, bottom: 0 };
-const LOGO_COL = 26;  // kolom logo
-const NAME_COL = 200; // kolom nama produk
+const LOGO_COL = 30;  // kolom logo
+const NAME_COL = 240; // kolom nama produk
 const AXIS_X = GRID.left + LOGO_COL + NAME_COL; // posisi sumbu-Y (batang mulai di sini)
-const CHART_H = 384;  // tinggi chart (px), harus sama dengan style container
+const CHART_H = 440;  // tinggi chart (px), harus sama dengan style container
 
 function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
   const txt = isDark ? "#94a3b8" : "#475569";
@@ -32,15 +32,16 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
       valueFormatter: (v) => fmt(Number(v)),
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a" },
+      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 13 },
     },
-    grid: { left: AXIS_X, right: GRID.right, top: GRID.top, bottom: GRID.bottom, containLabel: false },
+    grid: { left: AXIS_X, right: 56, top: GRID.top, bottom: GRID.bottom, containLabel: false },
     xAxis: {
       type: "value",
       max: maxV > 0 ? Math.ceil(maxV * 1.2) : undefined, // skala rapat
       splitLine: { lineStyle: { color: gridLine } },
       axisLabel: {
         color: txt,
+        fontSize: 13,
         formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")),
       },
     },
@@ -61,7 +62,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
       },
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },
       label: {
-        show: true, position: "right", color: txt,
+        show: true, position: "right", color: txt, fontSize: 13,
         formatter: (p) => fmt(Number(p.value)), // ← FIX: tanpa anotasi { value: number }
       },
     }],
@@ -91,8 +92,8 @@ export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
             <div key={`${it.name}-${i}`}
               className="absolute flex items-center gap-2"
               style={{ top, left: GRID.left, transform: "translateY(-50%)" }}>
-              <BrandLogo brand={it.brand} size={20} />
-              <span className="truncate text-xs font-medium"
+              <BrandLogo brand={it.brand} size={24} />
+              <span className="truncate text-sm font-medium"
                 style={{ color: nameColor, width: NAME_COL - 12 }}>
                 {it.name}
               </span>

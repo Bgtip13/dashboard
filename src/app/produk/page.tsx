@@ -68,7 +68,7 @@ function Pills<T extends string>({ items, value, onChange, id }: {
   return (
     <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/5 p-1">
       {items.map((it) => (
-        <button key={it} onClick={() => onChange(it)} className="relative rounded-full px-4 py-1.5 text-sm">
+        <button key={it} onClick={() => onChange(it)} className="relative rounded-full px-5 py-2 text-base">
           {value === it && (
             <motion.span layoutId={id} transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className="absolute inset-0 rounded-full bg-indigo-500/30 ring-1 ring-indigo-400/50" />
@@ -81,17 +81,17 @@ function Pills<T extends string>({ items, value, onChange, id }: {
 }
 
 const selectCls =
-  "h-10 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900";
+  "h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900";
 
 function StatCard({ label, icon, delay, children }: {
   label: string; icon: string; delay: number; children: React.ReactNode;
 }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition-colors hover:border-white/20 hover:bg-white/[0.06]">
+      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-colors hover:border-white/20 hover:bg-white/[0.06]">
       <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-indigo-500/10 blur-2xl transition-opacity group-hover:bg-cyan-400/15" />
       <div className="flex items-start justify-between">
-        <p className="text-xs uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="text-sm uppercase tracking-wider text-slate-400">{label}</p>
         <Icn e={icon} className="h-4 w-4 opacity-40" />
       </div>
       {children}
@@ -176,7 +176,7 @@ function ProdukPageContent() {
   if (error) {
     return (
       <div className="py-6">
-        <h1 className="text-2xl font-bold">Penjualan Produk</h1>
+        <h1 className="text-3xl font-bold">Penjualan Produk</h1>
         <p className="mt-2 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
           {(error as Error).message} — pastikan sheet sudah di-publish ke web.
         </p>
@@ -185,7 +185,7 @@ function ProdukPageContent() {
   }
 
   return (
-    <div className="relative space-y-6 py-6">
+    <div className="relative space-y-8 py-8">
       {/* Aksen cahaya latar */}
       <div className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-72 opacity-60"
         style={{ background: "radial-gradient(600px 200px at 30% 0%, rgba(99,102,241,0.18), transparent), radial-gradient(500px 200px at 75% 10%, rgba(34,211,238,0.10), transparent)" }} />
@@ -193,13 +193,13 @@ function ProdukPageContent() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Penjualan Produk</h1>
+          <h1 className="text-3xl font-bold">Penjualan Produk</h1>
           <p className="text-sm text-slate-400">
             {isLoading ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
           </p>
         </div>
         {!isLoading && (
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-300">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-300">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -210,7 +210,7 @@ function ProdukPageContent() {
       </div>
 
       {/* Filter */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
         <select value={kategoriEff} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
           <option value="ALL">Semua Kategori</option>
@@ -230,28 +230,28 @@ function ProdukPageContent() {
           <option value="qty-asc">Qty tersedikit</option>
         </select>
         <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari barang / pelanggan / kecamatan…"
-          className="h-10 min-w-56 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
+          className="h-11 min-w-64 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
       </div>
 
       {/* Ringkasan */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Transaksi" icon="🧾" delay={0}>
-          <CountUp value={filtered.length} className="mt-1 block text-2xl font-bold tabular-nums" />
+          <CountUp value={filtered.length} className="mt-1 block text-3xl font-bold tabular-nums" />
         </StatCard>
         <StatCard label="Total Qty" icon="📦" delay={0.05}>
-          <CountUp value={totalQty} className="mt-1 block text-2xl font-bold tabular-nums" />
+          <CountUp value={totalQty} className="mt-1 block text-3xl font-bold tabular-nums" />
         </StatCard>
         <StatCard label="Total Penjualan" icon="💰" delay={0.1}>
-          <CountUp value={totalRp} format={rp} className="mt-1 block text-2xl font-bold tabular-nums text-emerald-300" />
+          <CountUp value={totalRp} format={rp} className="mt-1 block text-3xl font-bold tabular-nums text-emerald-300" />
         </StatCard>
         <StatCard label="Barang Terjual" icon="🏷️" delay={0.15}>
-          <CountUp value={barangUnik} className="mt-1 block text-2xl font-bold tabular-nums" />
+          <CountUp value={barangUnik} className="mt-1 block text-3xl font-bold tabular-nums" />
         </StatCard>
       </div>
 
       {/* Grafik per barang (10, mengikuti filter & urutan, dengan logo brand) */}
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <p className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
           <Icn e="📊" className="h-4 w-4" />
           {chartCfg.metric === "qty" ? "Qty" : "Penjualan"} per barang —{" "}
           <span className="text-indigo-300">{urut.endsWith("desc") ? `${CHART_TOP} tertinggi` : `${CHART_TOP} terendah`}</span>
@@ -262,10 +262,10 @@ function ProdukPageContent() {
       {/* Tabel */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5 text-left text-xs uppercase tracking-wider text-slate-400">
-                <th className="px-4 py-3 font-semibold">Area</th>
+              <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+                <th className="px-5 py-3.5 font-semibold">Area</th>
                 <th className="px-4 py-3 font-semibold">Kabupaten</th>
                 <th className="px-4 py-3 font-semibold">Kecamatan</th>
                 <th className="px-4 py-3 font-semibold">Kategori</th>
@@ -285,7 +285,7 @@ function ProdukPageContent() {
                   initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.03 }}
                   className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
-                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-xs font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
+                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
                   <td className="px-4 py-3">{r.kabupaten}</td>
                   <td className="px-4 py-3">{r.kecamatan}</td>
                   <td className="px-4 py-3 text-slate-300">{r.kategori}</td>
@@ -298,7 +298,7 @@ function ProdukPageContent() {
                   <td className="max-w-72 truncate px-4 py-3 font-medium">{r.barang}</td>
                   <td className="px-4 py-3 text-slate-300">{r.pelanggan}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.qty.toLocaleString("id-ID")}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums" style={{ color: r.penjualan < 0 ? "#f87171" : undefined }}>{rp(r.penjualan)}</td>
+                  <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums ${r.penjualan < 0 ? "text-rose-300" : ""}`}>{rp(r.penjualan)}</td>
                 </motion.tr>
               ))}
             </tbody>
@@ -308,10 +308,10 @@ function ProdukPageContent() {
           <span className="text-slate-400 tabular-nums">{filtered.length.toLocaleString("id-ID")} baris</span>
           <div className="flex items-center gap-2">
             <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}
-              className="rounded-full border border-white/10 px-3.5 py-1.5 transition-colors hover:bg-white/10 disabled:opacity-40">◀ Prev</button>
+              className="rounded-full border border-white/10 px-4 py-2 transition-colors hover:bg-white/10 disabled:opacity-40">◀ Prev</button>
             <span className="px-2 text-slate-400 tabular-nums">Hal {page + 1} / {pageCount}</span>
             <button disabled={page >= pageCount - 1} onClick={() => setPage((p) => p + 1)}
-              className="rounded-full border border-white/10 px-3.5 py-1.5 transition-colors hover:bg-white/10 disabled:opacity-40">Next ▶</button>
+              className="rounded-full border border-white/10 px-4 py-2 transition-colors hover:bg-white/10 disabled:opacity-40">Next ▶</button>
           </div>
         </div>
       </div>

@@ -1,9 +1,12 @@
 "use client";
 import { motion } from "framer-motion";
-import type { BadgeInfo } from "@/lib/badge";
+import { badgeTone, type BadgeInfo } from "@/lib/badge";
+import { useTheme } from "@/app/providers";
 import Icn from "./Icn";
 
 export default function FlagBadge({ badge }: { badge: BadgeInfo }) {
+  const { isDark } = useTheme();
+  const tone = badgeTone(badge, isDark);
   return (
     <div className="pointer-events-none absolute -right-1 top-3 z-10 flex items-start">
       <div className="h-24 w-1 rounded-full bg-gradient-to-b from-slate-200 via-slate-400 to-slate-700" />
@@ -17,10 +20,12 @@ export default function FlagBadge({ badge }: { badge: BadgeInfo }) {
         }}
         className="origin-left rounded-r-xl border-r-4 px-3 py-2 text-xs font-bold leading-tight"
         style={{
-          color: badge.color,
-          background: `linear-gradient(100deg, ${badge.bg}f2, ${badge.bg}99)`,
-          borderRightColor: badge.color,
-          boxShadow: `0 0 18px ${badge.color}55`,
+          color: tone.color,
+          background: isDark
+            ? `linear-gradient(100deg, ${badge.bg}f2, ${badge.bg}99)`
+            : tone.background,
+          borderRightColor: tone.color,
+          boxShadow: `0 0 18px ${tone.color}55`,
         }}
       >
         <Icn e={badge.emoji} className="mr-1 h-3 w-3" /> {badge.label}

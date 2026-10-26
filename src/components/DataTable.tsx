@@ -57,27 +57,27 @@ export default function DataTable<T>({
   };
 
   const alignCls = (c: Column<T>) => (c.align === "right" ? "text-right" : c.align === "center" ? "text-center" : "text-left");
-  const pad = compact ? "px-1.5 py-1.5" : "px-4 py-3";
-  const thPad = compact ? "px-1.5 py-2" : "px-4 py-3";
+  const pad = compact ? "px-2 py-2" : "px-5 py-3.5";
+  const thPad = compact ? "px-2 py-2.5" : "px-5 py-3.5";
   const clickable = onRowClick ? "cursor-pointer" : "";
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.04]">
       {(toolbar || toolbarRight) && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2 text-xs text-slate-400">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
           <div className="min-w-0">{toolbar}</div>
           <div className="flex items-center gap-2">{toolbarRight}</div>
         </div>
       )}
 
       <div className="tbl-scroll">
-        <table className={`w-full ${fixed ? "table-fixed" : ""} ${compact ? "text-[11px] leading-tight" : "text-sm"}`}>
+        <table className={`w-full ${fixed ? "table-fixed" : ""} ${compact ? "text-[0.8rem] leading-snug" : "text-base"}`}>
           {fixed && (
             <colgroup>
               {columns.map((c) => <col key={c.key} style={{ width: c.width }} />)}
             </colgroup>
           )}
-          <thead className={`tbl-head border-b border-white/10 bg-white/5 text-slate-400 uppercase ${compact ? "text-[10px] tracking-wide" : "text-xs tracking-wider"}`}>
+          <thead className={`tbl-head border-b border-white/10 bg-white/5 text-slate-400 uppercase ${compact ? "text-[0.75rem] tracking-wide" : "text-sm tracking-wider"}`}>
             <tr>
               {columns.map((c, i) => (
                 <th key={c.key} scope="col" title={c.headerTitle}
@@ -86,7 +86,7 @@ export default function DataTable<T>({
                     <button onClick={() => onSort(c.key)}
                       className={`inline-flex items-center gap-0.5 transition-colors hover:text-indigo-300 ${sortKey === c.key ? "text-indigo-300" : ""}`}>
                       {c.header}
-                      <span className="text-[8px]">{sortKey === c.key ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
+                      <span className="text-[0.65rem]">{sortKey === c.key ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
                     </button>
                   ) : c.header}
                 </th>

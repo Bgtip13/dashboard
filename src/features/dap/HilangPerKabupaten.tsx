@@ -17,7 +17,7 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
       trigger: "item",
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: txt1, fontSize: 12 },
+      textStyle: { color: txt1, fontSize: 13 },
       formatter: (p: unknown) => {
         const d = p as { value?: number; dataIndex?: number };
         const row = data[d.dataIndex ?? 0];
@@ -25,17 +25,17 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
         return `<b>${row.kabupaten}</b><br/>Hilang: <span style="color:#fb7185">${rpShort(row.nominal)}</span><br/>${row.toko} toko tanpa transaksi`;
       },
     },
-    grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
     xAxis: {
       type: "value",
       splitLine: { lineStyle: { color: grid } },
-      axisLabel: { color: txt2, formatter: (v: number) => rpShort(v).replace("Rp", "") },
+      axisLabel: { color: txt2, fontSize: 13, formatter: (v: number) => rpShort(v).replace("Rp", "") },
     },
     yAxis: {
       type: "category",
       inverse: true,
       data: data.map((d) => d.kabupaten),
-      axisLabel: { color: txt, fontSize: 10, width: 110, overflow: "truncate" },
+      axisLabel: { color: txt, fontSize: 13, width: 150, overflow: "truncate" },
       axisLine: { lineStyle: { color: grid } },
       axisTick: { show: false },
     },
@@ -53,7 +53,7 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
         },
       })),
       label: {
-        show: true, position: "right", color: txt, fontSize: 10,
+        show: true, position: "right", color: txt, fontSize: 12,
         formatter: (p: unknown) => rpShort(Number((p as { value?: number }).value ?? 0)),
       },
     }],
@@ -64,5 +64,5 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
 export default function HilangPerKabupaten({ data }: { data: HilangKab[] }) {
   const { isDark } = useTheme();
   const ref = useECharts(option(data, isDark), [data, isDark]);
-  return <div ref={ref} className="h-64 w-full" />;
+  return <div ref={ref} className="h-72 w-full" />;
 }

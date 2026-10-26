@@ -49,17 +49,17 @@ function BulananPageContent() {
   const isTab = area === "TAB";
 
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-8 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Pencapaian Bulanan</h1>
+          <h1 className="text-3xl font-bold">Pencapaian Bulanan</h1>
           <p className="text-sm text-slate-400">
             {isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
           </p>
         </div>
         <div className="flex gap-1 rounded-full border border-white/10 bg-white/5 p-1">
           {AREAS.map((a) => (
-            <button key={a} onClick={() => setArea(a)} className="relative rounded-full px-4 py-1.5 text-sm">
+            <button key={a} onClick={() => setArea(a)} className="relative rounded-full px-5 py-2 text-base">
               {area === a && (
                 <motion.span layoutId="area-pill" transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   className="absolute inset-0 rounded-full bg-indigo-500/30 ring-1 ring-indigo-400/50" />
@@ -74,7 +74,7 @@ function BulananPageContent() {
         <PotionGauge title="Penjualan" pct={pcp} gradient={["#6366f1", "#22d3ee"]}
           formatter={(v) => `${v.toFixed(1)}%`} badge={badge}
           footer={
-            <div className="space-y-1.5 text-xs">
+            <div className="space-y-1.5 text-sm">
               <div className="flex justify-between"><span className="text-slate-400">Target</span><CountUp value={tgt} format={rp} className="font-medium text-slate-200" /></div>
               <div className="flex justify-between"><span className="text-slate-400">Aktual</span><CountUp value={act} format={rp} className="font-medium text-slate-200" /></div>
               <div className="flex justify-between"><span className="text-slate-400">Kejar 100%</span><CountUp value={kejar} format={rp} className="font-semibold text-amber-300" /></div>
@@ -87,11 +87,11 @@ function BulananPageContent() {
           formatter={() => (isTab ? "∞" : `${trip.jalan}/${trip.total}`)}
           footer={
             isTab ? (
-              <div className="text-xs text-slate-400">
+              <div className="text-sm text-slate-400">
                 <span className="font-semibold text-emerald-300">Toko Cabang &amp; Pelanggan Self-pickup</span>
               </div>
             ) : (
-              <div className="space-y-1.5 text-xs">
+              <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-slate-400">Trip sudah jalan</span><span className="font-semibold text-emerald-300">{trip.jalan}</span></div>
                 <div className="flex justify-between"><span className="text-slate-400">Sisa trip</span><span className="font-semibold text-amber-300">{Math.max(trip.total - trip.jalan, 0)}</span></div>
               </div>
@@ -102,7 +102,7 @@ function BulananPageContent() {
           gradient={["#f97316", "#ec4899"]}
           formatter={(v) => `${v.toFixed(1)}%`}
           footer={
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
               <span className="text-slate-400">Potensi Toko</span><CountUp value={kon.potensi} className="text-right font-medium text-slate-200" />
               <span className="text-slate-400">Toko Aktif</span><CountUp value={kon.aktif} className="text-right font-medium text-emerald-300" />
               <span className="text-slate-400">NOO</span><CountUp value={kon.noo} className="text-right font-medium text-slate-200" />
@@ -114,7 +114,7 @@ function BulananPageContent() {
           gradient={["#0ea5e9", "#14b8a6"]}
           formatter={() => `${he.berjalan}/${he.total}`}
           footer={
-            <div className="text-xs text-slate-400">
+            <div className="text-sm text-slate-400">
               Hari efektif berjalan <span className="font-semibold text-slate-200">{he.berjalan}</span> dari {he.total} (auto, tanpa Minggu)
             </div>
           } />

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { DapRow } from "@/lib/types";
 import { rpShort } from "@/lib/utils";
 import { KATEGORI, isKerugian, kategori, type Kategori } from "@/lib/dapSegment";
+import { useTheme } from "@/app/providers";
 import { MONTH_SHORT } from "./DapChart";
 
 const PAGE = 25;
@@ -26,11 +27,11 @@ function Th({ k, sortKey, dir, onSort, children, right = false }: {
 }) {
   const active = sortKey === k;
   return (
-    <th className={`px-1 py-2 ${right ? "text-right" : "text-left"}`}>
+    <th className={`px-2 py-2.5 ${right ? "text-right" : "text-left"}`}>
       <button onClick={() => onSort(k)}
         className={`inline-flex items-center gap-0.5 uppercase transition-colors hover:text-indigo-300 ${active ? "text-indigo-300" : ""}`}>
         {children}
-        <span className="text-[8px]">{active ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
+        <span className="text-[0.65rem]">{active ? (dir === 1 ? "▲" : "▼") : "↕"}</span>
       </button>
     </th>
   );
@@ -45,6 +46,7 @@ export default function DapTable({
   /** urutan awal dari URL (perintah F.R.I.D.A.Y) */
   initialSort?: string | null; initialDir?: 1 | -1;
 }) {
+  const { isDark } = useTheme();
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<string | null>(initialSort);
   const [dir, setDir] = useState<1 | -1>(initialDir);
@@ -84,10 +86,10 @@ export default function DapTable({
     setPage(0);
   };
 
-  const td = "truncate px-1.5 py-1.5";
+  const td = "truncate px-2 py-2";
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
-      <div className="flex items-center justify-between border-b border-white/10 px-3 py-2 text-xs text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
         <span>
           <b className="text-slate-200">{view.length}</b> dari <b className="text-slate-200">{sorted.length}</b> toko
           {totalHilang > 0 && <> · hilang <b className="text-rose-300">{rpShort(totalHilang)}</b></>}
@@ -102,7 +104,8 @@ export default function DapTable({
             className="rounded-lg border border-white/10 px-2 py-1 disabled:opacity-30 hover:bg-white/5">Next ▶</button>
         </div>
       </div>
-      <table className="w-full table-fixed text-[11px] leading-tight">
+      <div className="tbl-scroll">
+      <table className="w-full min-w-[1240px] table-fixed text-[0.8rem] leading-snug">
         <colgroup>
           <col style={{ width: "2.2%" }} /><col style={{ width: "5.8%" }} /><col style={{ width: "7.2%" }} />
           <col style={{ width: "9.8%" }} /><col style={{ width: "14.8%" }} /><col style={{ width: "5%" }} />
@@ -112,8 +115,8 @@ export default function DapTable({
           <col style={{ width: "3.8%" }} />
         </colgroup>
         <thead>
-          <tr className="border-b border-white/10 bg-white/5 text-[10px] text-slate-400">
-            <th className="px-1 py-2 text-left">NO</th>
+          <tr className="border-b border-white/10 bg-white/5 text-[0.75rem] text-slate-400">
+            <th className="px-2 py-2.5 text-left">NO</th>
             <Th k="area" sortKey={sortKey} dir={dir} onSort={onSort}>Area</Th>
             <Th k="kabupaten" sortKey={sortKey} dir={dir} onSort={onSort}>Kab.</Th>
             <Th k="kecamatan" sortKey={sortKey} dir={dir} onSort={onSort}>Kec.</Th>
@@ -167,11 +170,20 @@ export default function DapTable({
                   {r.hilang > 0 ? rpShort(r.hilang) : "—"}
                 </td>
                 <td className="px-1 py-1.5">
-                  <span className="block truncate rounded-full px-1 py-0.5 text-center text-[10px]" style={{ color: sc.color, background: sc.bg + "66" }} title={r.status}>
+                  <span className="block truncate rounded-full px-1 py-0.5 text-center text-[0.75rem]" style={{ color: sc.color, background: sc.bg + "66" }} title={r.status}>
                     {r.status}
                   </span>
                 </td>
-                <td className={`${td} text-right font-bold`} style={{ color: r.pcp >= 100 ? "#4ade80" : r.pcp >= 85 ? "#facc15" : r.pcp > 0 ? "#fb923c" : "#64748b" }}>
+                <td className={`${td} text-right font-bold`}
+                  style={{
+                    color: r.pcp >= 100
+                      ? (isDark ? "#4ade80" : "#15803d")
+                      : r.pcp >= 85
+                        ? (isDark ? "#facc15" : "#a16207")
+                        : r.pcp > 0
+                          ? (isDark ? "#fb923c" : "#c2410c")
+                          : "#64748b",
+                  }}>
                   {r.pcp > 0 ? `${r.pcp.toFixed(0)}%` : "—"}
                 </td>
               </tr>
@@ -179,6 +191,7 @@ export default function DapTable({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

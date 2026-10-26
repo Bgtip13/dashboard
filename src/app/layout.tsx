@@ -12,10 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
-      <body className="min-h-screen bg-[#0a0e1a] text-slate-100 antialiased">
+      <body className="min-h-screen antialiased">
         <Providers>
           <Navbar />
-          <main className="mx-auto max-w-7xl px-4 pb-12">{children}</main>
+          <main className="mx-auto max-w-[88rem] px-4 pb-16 sm:px-8">{children}</main>
           <Asisten />
         </Providers>
       </body>

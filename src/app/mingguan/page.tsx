@@ -4,7 +4,8 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { fetchWeekly, fetchMonthly } from "@/lib/api";
-import { getBadge } from "@/lib/badge";
+import { badgeTone, getBadge } from "@/lib/badge";
+import { useTheme } from "@/app/providers";
 import { rp } from "@/lib/utils";
 import WeeklyChart, { type ChartConfig } from "@/features/weekly/WeeklyChart";
 import WeeklyTable from "@/features/weekly/WeeklyTable";
@@ -22,7 +23,7 @@ function Pills<T extends string>({ items, value, onChange, id }: {
   return (
     <div className="flex gap-1 rounded-full border border-white/10 bg-white/5 p-1">
       {items.map((it) => (
-        <button key={it} onClick={() => onChange(it)} className="relative rounded-full px-4 py-1.5 text-sm">
+        <button key={it} onClick={() => onChange(it)} className="relative rounded-full px-5 py-2 text-base">
           {value === it && (
             <motion.span layoutId={id} transition={{ type: "spring", stiffness: 400, damping: 30 }}
               className="absolute inset-0 rounded-full bg-indigo-500/30 ring-1 ring-indigo-400/50" />
@@ -36,6 +37,7 @@ function Pills<T extends string>({ items, value, onChange, id }: {
 
 function MingguanPageContent() {
   const sp = useSearchParams();
+  const { isDark } = useTheme();
   const { data, isLoading } = useQuery({ queryKey: ["weekly"], queryFn: fetchWeekly });
   const { data: monthly } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const [area, setArea] = useState<Area>(() => {
@@ -92,9 +94,9 @@ function MingguanPageContent() {
   const badge = getBadge(pcp);
 
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-8 py-8">
       <div>
-        <h1 className="text-2xl font-bold">Pencapaian Mingguan</h1>
+        <h1 className="text-3xl font-bold">Pencapaian Mingguan</h1>
         <p className="text-sm text-slate-400">
           {isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
         </p>
@@ -107,24 +109,24 @@ function MingguanPageContent() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <p className="text-xs uppercase tracking-wider text-slate-400">
+          className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-sm uppercase tracking-wider text-slate-400">
             {week === "ALL" ? "Target Bulanan" : "Target Mingguan"}
           </p>
-          <CountUp value={tgt} format={rp} className="mt-1 block text-2xl font-bold" />
+          <CountUp value={tgt} format={rp} className="mt-1 block text-3xl font-bold" />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <p className="text-xs uppercase tracking-wider text-slate-400">Aktual</p>
-          <CountUp value={act} format={rp} className="mt-1 block text-2xl font-bold text-emerald-300" />
+          className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-sm uppercase tracking-wider text-slate-400">Aktual</p>
+          <CountUp value={act} format={rp} className="mt-1 block text-3xl font-bold text-emerald-300" />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-          <p className="text-xs uppercase tracking-wider text-slate-400">Pencapaian</p>
+          className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="text-sm uppercase tracking-wider text-slate-400">Pencapaian</p>
           <div className="mt-1 flex items-center gap-3">
-            <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="text-2xl font-bold" />
-            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-              style={{ color: badge.color, background: badge.bg + "55" }}>
+            <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="text-3xl font-bold" />
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-semibold"
+              style={badgeTone(badge, isDark)}>
               <Icn e={badge.emoji} className="h-3.5 w-3.5" /> {badge.label}
             </span>
           </div>
@@ -136,7 +138,7 @@ function MingguanPageContent() {
         </motion.div>
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <WeeklyChart config={config} />
       </div>
 

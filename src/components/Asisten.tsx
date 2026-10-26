@@ -98,10 +98,10 @@ export default function Asisten() {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-label={open ? "Tutup F.R.I.D.A.Y" : "Buka F.R.I.D.A.Y"}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 py-2 pl-2 pr-4 text-sm font-semibold text-slate-100 shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 py-2 pl-2 pr-5 text-base font-semibold text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
       >
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/15 to-indigo-500/20 ring-1 ring-cyan-300/30">
-          <FridayLogo size={26} active={busy || open} />
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/15 to-indigo-500/20 ring-1 ring-cyan-300/30">
+          <FridayLogo size={28} active={busy || open} />
         </span>
         <span className="hidden tracking-[0.12em] sm:inline">F.R.I.D.A.Y</span>
         <span
@@ -119,28 +119,28 @@ export default function Asisten() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className="fixed bottom-20 right-5 z-50 flex max-h-[min(560px,calc(100vh-7rem))] w-[min(94vw,390px)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0b1020]/95 shadow-2xl backdrop-blur"
+            className="fixed bottom-20 right-5 z-50 flex max-h-[min(640px,calc(100vh-8rem))] w-[min(94vw,430px)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--panel-bg)] shadow-2xl backdrop-blur"
           >
-            <div className="flex items-center gap-2.5 border-b border-white/10 bg-gradient-to-r from-cyan-500/[0.06] to-transparent px-4 py-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#061826] ring-1 ring-cyan-300/25">
-                <FridayLogo size={30} active={busy || open} />
+            <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-cyan-500/[0.06] to-transparent px-4 py-3.5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--logo-bg)] ring-1 ring-cyan-300/25">
+                <FridayLogo size={32} active={busy || open} />
               </span>
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-sm font-semibold tracking-[0.14em]">
+                <p className="flex items-center gap-2 text-base font-semibold tracking-[0.14em]">
                   F.R.I.D.A.Y
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-emerald-300">
-                    <span className="h-1 w-1 rounded-full bg-emerald-400" /> online
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2 py-0.5 text-[0.62rem] font-medium uppercase tracking-wider text-emerald-300">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> online
                   </span>
                 </p>
-                <p className="text-[11px] text-slate-400">Asisten data PCP — buka & filter pakai bahasa sehari-hari</p>
+                <p className="text-sm text-slate-400">Asisten data PCP — buka & filter pakai bahasa sehari-hari</p>
               </div>
               <button onClick={() => setOpen(false)} aria-label="Tutup F.R.I.D.A.Y"
-                className="rounded-lg border border-white/10 px-2 py-1 text-xs text-slate-400 hover:bg-white/5 hover:text-slate-200">✕</button>
+                className="rounded-lg border border-white/10 px-2.5 py-1.5 text-sm text-slate-400 hover:bg-white/5 hover:text-slate-200">✕</button>
             </div>
 
-            <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
+            <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3.5">
               {messages.length === 0 && (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-xs leading-relaxed text-slate-300">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 text-sm leading-relaxed text-slate-300">
                   Halo, saya <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> — asisten data PCP Dashboard.
                   Sebutkan halaman atau data yang mau dibuka, contohnya
                   <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang bulan ini”</span>.
@@ -150,7 +150,7 @@ export default function Asisten() {
               {messages.map((m) => (
                 <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
                   <div
-                    className={`max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed ${
+                    className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       m.role === "user"
                         ? "bg-indigo-500/25 text-slate-100"
                         : "border border-white/10 bg-white/[0.05] text-slate-200"
@@ -160,7 +160,7 @@ export default function Asisten() {
                     {m.action && (
                       <button
                         onClick={() => { if (m.action) router.push(actionUrl(m.action)); }}
-                        className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-indigo-300 hover:text-indigo-200"
+                        className="mt-1.5 inline-flex items-center gap-1 text-sm font-medium text-indigo-300 hover:text-indigo-200"
                       >
                         Buka lagi →
                       </button>
@@ -185,7 +185,7 @@ export default function Asisten() {
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {SARAN.map((s) => (
                     <button key={s} onClick={() => kirim(s)}
-                      className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-slate-300 transition-colors hover:border-indigo-400/40 hover:text-indigo-200">
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 transition-colors hover:border-indigo-400/40 hover:text-indigo-200">
                       {s}
                     </button>
                   ))}
@@ -195,18 +195,18 @@ export default function Asisten() {
 
             <form
               onSubmit={(e) => { e.preventDefault(); kirim(input); }}
-              className="flex items-center gap-2 border-t border-white/10 p-2.5"
+              className="flex items-center gap-2 border-t border-white/10 p-3"
             >
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Perintah untuk F.R.I.D.A.Y…"
                 aria-label="Perintah untuk F.R.I.D.A.Y"
-                className="h-10 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 text-xs text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60"
+                className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60"
               />
               <button type="submit" disabled={busy || !input.trim()}
-                className="flex h-10 items-center gap-1 rounded-xl bg-indigo-500/90 px-3 text-xs font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40">
-                <Icn e="➤" className="h-3.5 w-3.5" />
+                className="flex h-12 items-center gap-1 rounded-xl bg-indigo-500/90 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40">
+                <Icn e="➤" className="h-4 w-4" />
               </button>
             </form>
           </motion.aside>
