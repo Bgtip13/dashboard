@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { parseCsv } from "@/lib/csv";
 import { rp } from "@/lib/utils";
@@ -100,13 +101,19 @@ function StatCard({ label, icon, delay, children }: {
 
 type Urut = "pj-desc" | "pj-asc" | "qty-desc" | "qty-asc";
 
-export default function ProdukPage() {
+function ProdukPageContent() {
+  const sp = useSearchParams();
   const { data, isLoading, error } = useQuery({ queryKey: ["produk"], queryFn: fetchProduk });
-  const [area, setArea] = useState("ALL");
-  const [kategori, setKategori] = useState("ALL");
-  const [brand, setBrand] = useState("ALL");
-  const [cari, setCari] = useState("");
-  const [urut, setUrut] = useState<Urut>("pj-desc");
+
+  // Filter awal bisa datang dari Asisten AI lewat query string (?area=&brand=&cari=…)
+  const [area, setArea] = useState(() => (sp.get("area") ?? "").trim().toUpperCase() || "ALL");
+  const [kategori, setKategori] = useState(() => (sp.get("kategori") ?? "").trim() || "ALL");
+  const [brand, setBrand] = useState(() => (sp.get("brand") ?? "").trim() || "ALL");
+  const [cari, setCari] = useState(() => sp.get("cari") ?? "");
+  const [urut, setUrut] = useState<Urut>(() => {
+    const raw = (sp.get("urut") ?? "").toLowerCase();
+    return (["pj-desc", "pj-asc", "qty-desc", "qty-asc"] as const).includes(raw as Urut) ? (raw as Urut) : "pj-desc";
+  });
   const [page, setPage] = useState(0);
 
   const rows = data?.rows ?? [];
@@ -114,17 +121,24 @@ export default function ProdukPage() {
   const kategoris = useMemo(() => uniqSorted(rows.map((r) => r.kategori)), [rows]);
   const brands = useMemo(() => uniqSorted(rows.map((r) => r.brand)), [rows]);
 
-  const filtered = useMemo(() => {
-    const s = cari.trim().toLowerCase();
-    return rows.filter((r) =>
-      (area === "ALL" || r.area === area) &&
-      (kategori === "ALL" || r.kategori === kategori) &&
-      (brand === "ALL" || r.brand === brand) &&
-      (!s || `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten}`.toLowerCase().includes(s))
-    );
-  }, [rows, area, kategori, brand, cari]);
+  // Filter yang tidak ada di data (mis. sisa perintah asisten) otomatis dianggap "ALL"
+  const areaEff = area !== "ALL" && areas.length > 0 && !areas.includes(area) ? "ALL" : area;
+  const kategoriEff = kategori !== "ALL" && kategoris.length > 0 && !kategoris.includes(kategori) ? "ALL" : kategori;
+  const brandEff = brand !== "ALL" && brands.length > 0 && !brands.includes(brand) ? "ALL" : brand;
 
-  useEffect(() => { setPage(0); }, [area, kategori, brand, cari, urut]);
+  const filtered = useMemo(() => {
+    const terms = cari.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return rows.filter((r) => {
+      if (areaEff !== "ALL" && r.area !== areaEff) return false;
+      if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) return false;
+      if (brandEff !== "ALL" && r.brand !== brandEff) return false;
+      if (terms.length === 0) return true;
+      const hay = `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten} ${r.brand}`.toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [rows, areaEff, kategoriEff, brandEff, cari]);
+
+  useEffect(() => { setPage(0); }, [areaEff, kategoriEff, brandEff, cari, urut]);
 
   const sorted = useMemo(() => {
     const a = [...filtered];
@@ -197,17 +211,17 @@ export default function ProdukPage() {
 
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-        <Pills items={["ALL", ...areas] as const} value={area} onChange={setArea} id="p-area" />
-        <select value={kategori} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
+        <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
+        <select value={kategoriEff} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
           <option value="ALL">Semua Kategori</option>
           {kategoris.map((k) => <option key={k} value={k}>{k}</option>)}
         </select>
         <span className="flex items-center gap-2">
-          <select value={brand} onChange={(e) => setBrand(e.target.value)} className={selectCls}>
+          <select value={brandEff} onChange={(e) => setBrand(e.target.value)} className={selectCls}>
           <option value="ALL">Semua Brand</option>
           {brands.map((b) => <option key={b} value={b}>{b}</option>)}
           </select>
-          {brand !== "ALL" && <BrandLogo brand={brand} size={30} />}
+          {brandEff !== "ALL" && <BrandLogo brand={brandEff} size={30} />}
         </span>
         <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
           <option value="pj-desc">Penjualan tertinggi</option>
@@ -302,5 +316,19 @@ export default function ProdukPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** key = query string, supaya perintah asisten berikutnya langsung menerapkan filter baru */
+function ProdukPageWithParams() {
+  const sp = useSearchParams();
+  return <ProdukPageContent key={sp.toString()} />;
+}
+
+export default function ProdukPage() {
+  return (
+    <Suspense fallback={<div className="py-10 text-center text-sm text-slate-500">Memuat…</div>}>
+      <ProdukPageWithParams />
+    </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { fetchDap, fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
@@ -17,6 +18,7 @@ import HilangPerKabupaten from "@/features/dap/HilangPerKabupaten";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import { FilterBar, FilterGroup, FilterPills, FilterSelect, FilterSearch } from "@/components/FilterBar";
+import { DAP_SORT_KEYS } from "@/lib/asisten";
 import type { DapRow } from "@/lib/types";
 
 const MONTHS = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
@@ -78,34 +80,62 @@ function Kpi({ label, sub, delay, children }: {
   );
 }
 
-export default function DapPage() {
+function DapPageContent() {
+  const sp = useSearchParams();
   const { data, isLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const { data: monthly } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const all = useMemo(() => data?.rows ?? [], [data]);
 
-  const [area, setArea] = useState("ALL");
-  const [kab, setKab] = useState("ALL");
-  const [kec, setKec] = useState("ALL");
-  const [q, setQ] = useState("");
-  const [monthIdx, setMonthIdx] = useState(new Date().getMonth());
-  const [trx, setTrx] = useState<TrxFilter>("ALL");
-  const [alasan, setAlasan] = useState<AlasanFilter>("ALL");
+  // Filter awal bisa datang dari Asisten AI lewat query string (?area=&kab=&q=…)
+  const [area, setArea] = useState(() => (sp.get("area") ?? "").trim().toUpperCase() || "ALL");
+  const [kab, setKab] = useState(() => (sp.get("kab") ?? "").trim() || "ALL");
+  const [kec, setKec] = useState(() => (sp.get("kec") ?? "").trim() || "ALL");
+  const [q, setQ] = useState(() => sp.get("q") ?? "");
+  const [monthIdx, setMonthIdx] = useState(() => {
+    const raw = (sp.get("bulan") ?? "").trim();
+    if (/^\d{1,2}$/.test(raw)) {
+      const n = Number(raw);
+      if (n >= 0 && n <= 11) return n;
+    }
+    return new Date().getMonth();
+  });
+  const [trx, setTrx] = useState<TrxFilter>(() => {
+    const raw = (sp.get("trx") ?? "").toUpperCase();
+    return (["ALL", "AKTIF", "BAWAH", "TANPA"] as const).includes(raw as TrxFilter) ? (raw as TrxFilter) : "ALL";
+  });
+  const [alasan, setAlasan] = useState<AlasanFilter>(() => {
+    const raw = (sp.get("alasan") ?? "").toUpperCase();
+    return (["ALL", "BERHENTI", "IDLE2", "BELUM", "TUTUP"] as const).includes(raw as AlasanFilter)
+      ? (raw as AlasanFilter) : "ALL";
+  });
   const [selected, setSelected] = useState<DapRow | null>(null);
 
+  // urutan kolom awal (dipakai F.R.I.D.A.Y, mis. “toko omset tertinggi”)
+  const sortParam = (sp.get("urut") ?? "").trim();
+  const initialSort = (DAP_SORT_KEYS as readonly string[]).includes(sortParam) ? sortParam : null;
+  const initialDir = (sp.get("arah") ?? "").toLowerCase() === "asc" ? 1 : -1;
+
   const areas = useMemo(() => Array.from(new Set(all.map((r) => r.area).filter(Boolean))).sort(), [all]);
-  const kabs = useMemo(() => Array.from(new Set(all.filter((r) => area === "ALL" || r.area === area).map((r) => r.kabupaten).filter(Boolean))).sort(), [all, area]);
-  const kecs = useMemo(() => Array.from(new Set(all.filter((r) => (area === "ALL" || r.area === area) && (kab === "ALL" || r.kabupaten === kab)).map((r) => r.kecamatan).filter(Boolean))).sort(), [all, area, kab]);
+  // Filter wilayah yang tidak ada di sheet (mis. sisa perintah asisten) otomatis dianggap "ALL"
+  const areaEff = area !== "ALL" && areas.length > 0 && !areas.includes(area) ? "ALL" : area;
+  const kabs = useMemo(() => Array.from(new Set(all.filter((r) => areaEff === "ALL" || r.area === areaEff).map((r) => r.kabupaten).filter(Boolean))).sort(), [all, areaEff]);
+  const kabEff = kab !== "ALL" && kabs.length > 0 && !kabs.includes(kab) ? "ALL" : kab;
+  const kecs = useMemo(() => Array.from(new Set(all.filter((r) => (areaEff === "ALL" || r.area === areaEff) && (kabEff === "ALL" || r.kabupaten === kabEff)).map((r) => r.kecamatan).filter(Boolean))).sort(), [all, areaEff, kabEff]);
+  const kecEff = kec !== "ALL" && kecs.length > 0 && !kecs.includes(kec) ? "ALL" : kec;
 
   // baris sebelum filter transaksi (dipakai untuk menghitung angka di chip filter)
   const baseRows = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return all.filter((r) =>
-      (area === "ALL" || r.area === area) &&
-      (kab === "ALL" || r.kabupaten === kab) &&
-      (kec === "ALL" || r.kecamatan === kec) &&
-      (!s || [r.toko, r.area, r.kabupaten, r.kecamatan, r.adm, r.kelasToko, r.kelasByr, r.status, r.bulanPasif].join(" ").toLowerCase().includes(s))
-    );
-  }, [all, area, kab, kec, q]);
+    const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return all.filter((r) => {
+      if (areaEff !== "ALL" && r.area !== areaEff) return false;
+      if (kabEff !== "ALL" && r.kabupaten !== kabEff) return false;
+      if (kecEff !== "ALL" && r.kecamatan !== kecEff) return false;
+      if (terms.length === 0) return true;
+      const hay = [r.toko, r.area, r.kabupaten, r.kecamatan, r.adm, r.kelasToko, r.kelasByr, r.status, r.bulanPasif]
+        .join(" ").toLowerCase();
+      return terms.every((t) => hay.includes(t));
+    });
+  }, [all, areaEff, kabEff, kecEff, q]);
 
   const segBase = useMemo(() => ringkasSegmentasi(baseRows, monthIdx), [baseRows, monthIdx]);
 
@@ -129,13 +159,13 @@ export default function DapPage() {
   const omset = rows.reduce((s, r) => s + r.omsetYtd, 0);
 
   // PCP memakai target resmi dari sheet Bulanan; saat filter toko aktif, pakai jumlah target toko terfilter
-  const storeScoped = trx !== "ALL" || q.trim() !== "" || kec !== "ALL" || kab !== "ALL";
+  const storeScoped = trx !== "ALL" || q.trim() !== "" || kecEff !== "ALL" || kabEff !== "ALL";
   const totalTarget = useMemo(() => {
     if (storeScoped) return sumStoreTarget;
     const mrows = monthly?.rows ?? [];
-    const hit = mrows.find((r) => (area === "ALL" ? r.area === "GLOBAL" : r.area === area));
+    const hit = mrows.find((r) => (areaEff === "ALL" ? r.area === "GLOBAL" : r.area === areaEff));
     return hit && hit.target > 0 ? hit.target : sumStoreTarget;
-  }, [monthly, area, storeScoped, sumStoreTarget]);
+  }, [monthly, areaEff, storeScoped, sumStoreTarget]);
   const lossPct = totalTarget ? (seg.hilangNominal / totalTarget) * 100 : 0;
 
   const pcp = totalTarget ? (act / totalTarget) * 100 : 0;
@@ -192,15 +222,15 @@ export default function DapPage() {
             </FilterSelect>
           </FilterGroup>
           <FilterGroup label="Wilayah">
-            <FilterSelect value={area} onChange={(v) => { setArea(v); setKab("ALL"); setKec("ALL"); }} title="Area">
+            <FilterSelect value={areaEff} onChange={(v) => { setArea(v); setKab("ALL"); setKec("ALL"); }} title="Area">
               <option value="ALL">Semua Area</option>
               {areas.map((a) => <option key={a} value={a}>{a}</option>)}
             </FilterSelect>
-            <FilterSelect value={kab} onChange={(v) => { setKab(v); setKec("ALL"); }} title="Kabupaten">
+            <FilterSelect value={kabEff} onChange={(v) => { setKab(v); setKec("ALL"); }} title="Kabupaten">
               <option value="ALL">Semua Kabupaten</option>
               {kabs.map((k) => <option key={k} value={k}>{k}</option>)}
             </FilterSelect>
-            <FilterSelect value={kec} onChange={setKec} title="Kecamatan">
+            <FilterSelect value={kecEff} onChange={setKec} title="Kecamatan">
               <option value="ALL">Semua Kecamatan</option>
               {kecs.map((k) => <option key={k} value={k}>{k}</option>)}
             </FilterSelect>
@@ -411,7 +441,22 @@ export default function DapPage() {
       )}
 
       <DapTable rows={rows} monthIdx={monthIdx} totalOmset={omset}
-        onSelect={setSelected} selectedToko={selected?.toko ?? null} />
+        onSelect={setSelected} selectedToko={selected?.toko ?? null}
+        initialSort={initialSort} initialDir={initialDir} />
     </div>
+  );
+}
+
+/** key = query string, supaya perintah asisten berikutnya langsung menerapkan filter baru */
+function DapPageWithParams() {
+  const sp = useSearchParams();
+  return <DapPageContent key={sp.toString()} />;
+}
+
+export default function DapPage() {
+  return (
+    <Suspense fallback={<div className="py-10 text-center text-sm text-slate-500">Memuat…</div>}>
+      <DapPageWithParams />
+    </Suspense>
   );
 }

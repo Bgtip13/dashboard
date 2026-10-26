@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
@@ -11,9 +12,13 @@ import CountUp from "@/components/CountUp";
 
 const AREAS = ["GLOBAL", "SOLO", "DIY", "SEMARANG", "TAB"] as const;
 
-export default function BulananPage() {
+function BulananPageContent() {
+  const sp = useSearchParams();
   const { data, isLoading } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
-  const [area, setArea] = useState<(typeof AREAS)[number]>("GLOBAL");
+  const [area, setArea] = useState<(typeof AREAS)[number]>(() => {
+    const raw = (sp.get("area") ?? "").toUpperCase();
+    return (AREAS as readonly string[]).includes(raw) ? (raw as (typeof AREAS)[number]) : "GLOBAL";
+  });
 
   // GLOBAL = jumlah 4 area (baris GLOBAL tidak ikut dihitung); filter lain = area tsb saja
   const rows = useMemo(
@@ -117,5 +122,19 @@ export default function BulananPage() {
 
       <MonthlyTable rows={rows} />
     </div>
+  );
+}
+
+/** key = query string, supaya perintah asisten berikutnya langsung menerapkan filter baru */
+function BulananPageWithParams() {
+  const sp = useSearchParams();
+  return <BulananPageContent key={sp.toString()} />;
+}
+
+export default function BulananPage() {
+  return (
+    <Suspense fallback={<div className="py-10 text-center text-sm text-slate-500">Memuat…</div>}>
+      <BulananPageWithParams />
+    </Suspense>
   );
 }

@@ -38,13 +38,16 @@ function Th({ k, sortKey, dir, onSort, children, right = false }: {
 
 export default function DapTable({
   rows, monthIdx, totalOmset, onSelect, selectedToko,
+  initialSort = null, initialDir = 1,
 }: {
   rows: DapRow[]; monthIdx: number; totalOmset: number;
   onSelect?: (r: DapRow) => void; selectedToko?: string | null;
+  /** urutan awal dari URL (perintah F.R.I.D.A.Y) */
+  initialSort?: string | null; initialDir?: 1 | -1;
 }) {
   const [page, setPage] = useState(0);
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [dir, setDir] = useState<1 | -1>(1);
+  const [sortKey, setSortKey] = useState<string | null>(initialSort);
+  const [dir, setDir] = useState<1 | -1>(initialDir);
 
   const enriched: Enriched[] = useMemo(() => rows.map((r) => {
     const aktual = r.bulanan[monthIdx] ?? 0;

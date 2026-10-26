@@ -1,5 +1,6 @@
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
+import Asisten from "@/components/Asisten";
 import "./globals.css";
 
 export const metadata = { title: "PCP Dashboard" };
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <Navbar />
           <main className="mx-auto max-w-7xl px-4 pb-12">{children}</main>
+          <Asisten />
         </Providers>
       </body>
     </html>

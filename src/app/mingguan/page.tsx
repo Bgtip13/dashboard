@@ -1,6 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { fetchWeekly, fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
@@ -33,11 +34,18 @@ function Pills<T extends string>({ items, value, onChange, id }: {
   );
 }
 
-export default function MingguanPage() {
+function MingguanPageContent() {
+  const sp = useSearchParams();
   const { data, isLoading } = useQuery({ queryKey: ["weekly"], queryFn: fetchWeekly });
   const { data: monthly } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
-  const [area, setArea] = useState<Area>("GLOBAL");
-  const [week, setWeek] = useState<WeekSel>("ALL");
+  const [area, setArea] = useState<Area>(() => {
+    const raw = (sp.get("area") ?? "").toUpperCase();
+    return (AREAS as readonly string[]).includes(raw) ? (raw as Area) : "GLOBAL";
+  });
+  const [week, setWeek] = useState<WeekSel>(() => {
+    const raw = (sp.get("minggu") ?? "").toUpperCase();
+    return (["ALL", ...WEEKS] as readonly string[]).includes(raw) ? (raw as WeekSel) : "ALL";
+  });
 
   const rows = useMemo(
     () => (data?.rows ?? []).filter((r) => (area === "GLOBAL" ? r.area !== "GLOBAL" : r.area === area)),
@@ -134,5 +142,19 @@ export default function MingguanPage() {
 
       <WeeklyTable rows={rows} weekIdx={weekIdx} />
     </div>
+  );
+}
+
+/** key = query string, supaya perintah asisten berikutnya langsung menerapkan filter baru */
+function MingguanPageWithParams() {
+  const sp = useSearchParams();
+  return <MingguanPageContent key={sp.toString()} />;
+}
+
+export default function MingguanPage() {
+  return (
+    <Suspense fallback={<div className="py-10 text-center text-sm text-slate-500">Memuat…</div>}>
+      <MingguanPageWithParams />
+    </Suspense>
   );
 }
