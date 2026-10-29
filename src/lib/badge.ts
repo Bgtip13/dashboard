@@ -37,13 +37,26 @@ const MOTIVASI = {
   KENCANG: { emoji: "🚀", label: "Start Kencang!", color: "#60a5fa", bg: "#1e3a8a" },
 };
 
-const PERF: [number, BadgeInfo][] = [
-  [85,       { emoji: "⚠️", label: "Perlu Perhatian", color: "#f87171", bg: "#7f1d1d" }],
-  [90,       { emoji: "📉", label: "Perlu Dorongan",  color: "#fb923c", bg: "#7c2d12" }],
-  [105,      { emoji: "🎯", label: "On Pace",         color: "#facc15", bg: "#713f12" }],
-  [115,      { emoji: "🌟", label: "Di Atas Ritme",   color: "#60a5fa", bg: "#1e3a8a" }],
-  [Infinity, { emoji: "🏆", label: "Outstanding",     color: "#fbbf24", bg: "#78350f" }],
+/** Urut dari yang paling perlu perhatian ke yang terbaik. */
+const PERF: BadgeInfo[] = [
+  { emoji: "⚠️", label: "Perlu Perhatian", color: "#f87171", bg: "#7f1d1d" },
+  { emoji: "📉", label: "Perlu Dorongan",  color: "#fb923c", bg: "#7c2d12" },
+  { emoji: "🎯", label: "On Pace",         color: "#facc15", bg: "#713f12" },
+  { emoji: "🌟", label: "Di Atas Ritme",   color: "#60a5fa", bg: "#1e3a8a" },
+  { emoji: "🏆", label: "Outstanding",     color: "#fbbf24", bg: "#78350f" },
 ];
+
+const LEVEL_ON_PACE = 2;
+
+/** Peringkat badge dari capaian absolut: <85, <90, <100 (sesuai ritme), <115, sisanya. */
+function perfLevel(value: number): number {
+  const v = Math.max(0, value);
+  if (v < 85) return 0;
+  if (v < 90) return 1;
+  if (v < 100) return LEVEL_ON_PACE;
+  if (v < 115) return 3;
+  return 4;
+}
 
 /** Hitung berapa kemunculan weekday dari tanggal 1 s/d upToDay (inklusif) */
 function countSlots(year: number, month: number, upToDay: number, weekdays: number[]): number {
@@ -64,10 +77,8 @@ export function getRhythm(pcp: number, area: Area, now = new Date()) {
   return { pcp, slotsPassed, totalSlots, score };
 }
 
-function pickPerf(score: number): BadgeInfo {
-  const s = Math.max(0, score);
-  for (const [max, b] of PERF) if (s < max) return b;
-  return PERF[PERF.length - 1][1];
+function pickPerf(value: number): BadgeInfo {
+  return PERF[perfLevel(value)];
 }
 
 function motivasiBadge(pcp: number, score: number | null, slots: number): BadgeInfo {
@@ -81,12 +92,23 @@ export function getBadgeAbsolute(pcp: number): BadgeInfo {
   return pickPerf(pcp);
 }
 
-/** area kosong/null → fallback absolut; dengan area → penilaian berbasis ritme slot input */
+/**
+ * area kosong/null → penilaian absolut.
+ * Dengan area → ritme slot input ikut dinilai, tapi hanya boleh mengangkat badge
+ * sampai "On Pace" selama PCP masih di bawah 100%. Pencapaian ≥ 100% dinilai
+ * dari PCP-nya sendiri, supaya target yang lebih tinggi tidak pernah mendapat
+ * badge yang lebih rendah daripada target yang belum tercapai.
+ */
 export function getBadge(pcp: number, area?: Area | null, now = new Date()): BadgeInfo {
   if (!area) return getBadgeAbsolute(pcp);
+
   const { score, slotsPassed } = getRhythm(pcp, area, now);
   if (score === null || slotsPassed < MIN_SLOTS) return motivasiBadge(pcp, score, slotsPassed);
-  return pickPerf(score);
+
+  const level = pcp >= 100
+    ? perfLevel(pcp)
+    : Math.min(perfLevel(score), LEVEL_ON_PACE);
+  return PERF[level];
 }
 
 /** Normalisasi string bebas → Area, null kalau tidak dikenal */
