@@ -6,6 +6,8 @@
  * balas dengan daftar kemampuan supaya pengguna tahu harus menulis apa.
  */
 
+import { answerFromSnapshot, type AsistenSnapshot } from "./asistenSnapshot";
+
 export const ASISTEN_PAGES = ["beranda", "bulanan", "mingguan", "dap", "produk"] as const;
 export type AsistenPage = (typeof ASISTEN_PAGES)[number];
 
@@ -86,16 +88,101 @@ export const HELP_REPLY = [
   "Saya F.R.I.D.A.Y — bisa membuka data apa pun di dashboard ini. Contoh perintah:",
   "• “buka DAP toko tanpa transaksi di Semarang”",
   "• “toko omset tertinggi kabupaten Sleman”",
-  "• “toko pcp terendah area DIY bulan ini”",
   "• “buka produk brand Wardah urut qty terbanyak”",
   "• “pencapaian bulanan area DIY” / “pencapaian mingguan area Solo minggu 2”",
-  "Sebutkan halaman (DAP, Produk, Bulanan, Mingguan), wilayah, brand, atau bulan yang diinginkan.",
+  "• “berapa pencapaian bulan ini?” — saya jawab angkanya langsung",
+  "Sebutkan halaman (DAP, Produk, Bulanan, Mingguan), wilayah, brand, atau bulan yang diinginkan. Di browser yang mendukung, tekan ikon mikrofon untuk memberi perintah lewat suara.",
 ].join("\n");
 
 const norm = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
 
 const tokens = (s: string) => norm(s).split(" ").filter(Boolean);
+
+/* --------------------------- percakapan ringan --------------------------- */
+
+const STOP_TOKENS = new Set([
+  "stop", "diam", "berhenti", "cukup", "batal", "batalkan", "senyap", "sst", "sudah",
+  "jangan", "bicara", "ngomong", "suara", "dulu", "ya", "bos", "sebentar", "matikan",
+  "matiin", "mute", "saja", "aja",
+]);
+
+/** Perintah untuk menghentikan suara F.R.I.D.A.Y — bukan filter data. */
+export function isStopCommand(raw: string): boolean {
+  const t = tokens(raw);
+  if (!t.length || t.length > 4) return false;
+  if (!t.every((w) => STOP_TOKENS.has(w))) return false;
+  return t.some((w) =>
+    ["stop", "diam", "berhenti", "cukup", "batal", "batalkan", "senyap", "sst", "matikan", "matiin", "mute", "jangan"].includes(w)
+  );
+}
+
+const GREETING_TOKENS = new Set([
+  "halo", "hallo", "hai", "hi", "hey", "helo", "pagi", "siang", "sore", "malam",
+  "selamat", "friday", "bos", "ya", "dong", "semua", "bro",
+]);
+
+const GREETING_WORDS = ["halo", "hallo", "hai", "hi", "hey", "helo", "pagi", "siang", "sore", "malam", "selamat"];
+
+const QUESTION_WORDS = new Set([
+  "berapa", "brp", "berapakah", "gimana", "bagaimana", "apa", "apakah", "mana", "manakah",
+  "total", "jumlah", "sekarang",
+]);
+
+/** Jam WIB, supaya sapaan & jawaban jam konsisten di server maupun klien. */
+function jamJakarta(now: Date): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hour12: false, timeZone: "Asia/Jakarta" }).format(now)
+  );
+}
+
+function sapaJam(now: Date): string {
+  const jam = jamJakarta(now);
+  if (jam < 11) return "Selamat pagi";
+  if (jam < 15) return "Selamat siang";
+  if (jam < 18) return "Selamat sore";
+  return "Selamat malam";
+}
+
+/** Sapaan, identitas, kemampuan, terima kasih, dan jam — tanpa perlu model. */
+function conversationReply(n: string, now: Date): AsistenResult | null {
+  const t = n.split(" ").filter(Boolean);
+  if (!t.length) return null;
+
+  if (/jam berapa|pukul berapa|sekarang jam|tanggal berapa|hari apa/.test(n)) {
+    const teks = new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta", weekday: "long", day: "numeric", month: "long",
+      year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false,
+    }).format(now);
+    return { reply: `Sekarang ${teks} WIB, Bos.`, action: null, source: "rule" };
+  }
+
+  if (/siapa kamu|kamu siapa|nama kamu|friday (itu )?siapa|kenalan|perkenalkan diri/.test(n)) {
+    return {
+      reply: "Saya F.R.I.D.A.Y, asisten data PCP Anda. Saya bisa membuka halaman, menyaring toko, dan menjawab angka ringkasan — lewat ketik maupun suara, Bos.",
+      action: null,
+      source: "rule",
+    };
+  }
+
+  if (/bisa apa|apa saja .*bisa|kemampuan|fitur|^bantuan$|^help$|cara pakai|gimana cara|cara menggunakan|apa yang bisa/.test(n)) {
+    return { reply: HELP_REPLY, action: null, source: "rule" };
+  }
+
+  if (t.length <= 5 && /makasih|terima kasih|thanks|thank you|tq/.test(n)) {
+    return { reply: "Siap, Bos. Kalau butuh data lain, panggil saja saya.", action: null, source: "rule" };
+  }
+
+  if (t.every((w) => GREETING_TOKENS.has(w)) && t.some((w) => GREETING_WORDS.includes(w))) {
+    return {
+      reply: `${sapaJam(now)}, Bos. F.R.I.D.A.Y online dan semua sistem siap. Mau saya bukakan data apa hari ini?`,
+      action: null,
+      source: "rule",
+    };
+  }
+
+  return null;
+}
 
 /** nama bulan (token utuh, supaya "mei" tidak ikut mencocokkan kata lain) */
 const MONTH_WORDS: [string, number][] = [
@@ -471,12 +558,24 @@ function detectPage(t: string[]): AsistenPage | null {
 }
 
 /** Parser bawaan tanpa model: menangani perintah umum dan tahan salah ketik. */
-export function parseAsistenCommand(raw: string, options: AsistenOptions, now = new Date()): AsistenResult {
+export function parseAsistenCommand(
+  raw: string,
+  options: AsistenOptions,
+  now = new Date(),
+  snapshot?: AsistenSnapshot,
+): AsistenResult {
   const text = raw.trim();
   const n = norm(text);
   if (!n) {
     return { reply: HELP_REPLY, action: null, source: "rule" };
   }
+
+  if (isStopCommand(text)) {
+    return { reply: "Baik, Bos. Saya berhenti bicara.", action: null, source: "rule" };
+  }
+
+  const convo = conversationReply(n, now);
+  if (convo) return convo;
 
   const t = n.split(" ").filter(Boolean);
   const areaMatch = matchArea(n, options.areas, t);
@@ -484,6 +583,15 @@ export function parseAsistenCommand(raw: string, options: AsistenOptions, now = 
   const kecMatch = matchOption(n, options.kecamatan);
   const brandMatch = matchOption(n, options.brands);
   const kategoriMatch = matchOption(n, options.kategori);
+
+  // Pertanyaan angka dijawab dari data yang sudah termuat di dashboard.
+  // Perintah bernavigasi (ada kata kerja) tetap membuka halaman + filter.
+  const asksQuestion = t.some((w) => QUESTION_WORDS.has(w)) || text.includes("?");
+  const wantsNavigation = t.some((w) => COMMAND_VERBS.includes(w));
+  if (snapshot && asksQuestion && !wantsNavigation && !kabMatch && !kecMatch && !brandMatch) {
+    const answered = answerFromSnapshot(n, snapshot);
+    if (answered) return answered;
+  }
 
   // kata yang tidak perlu ikut jadi kata kunci pencarian
   const drop = new Set<string>(STOPWORDS);

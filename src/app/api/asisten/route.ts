@@ -2,6 +2,7 @@ import {
   EMPTY_OPTIONS, describeAction, normalizeParam, parseAsistenCommand, sanitizeAction,
   type AsistenOptions, type AsistenResult,
 } from "@/lib/asisten";
+import type { AsistenSnapshot } from "@/lib/asistenSnapshot";
 
 const MAX_OPTIONS = 400;
 
@@ -46,8 +47,88 @@ function readOptions(input: unknown): AsistenOptions {
   };
 }
 
-const SYSTEM_PROMPT = `Kamu menerjemahkan perintah bahasa Indonesia menjadi aksi navigasi dashboard PCP.
-Balas HANYA JSON tanpa penjelasan, bentuk: {"page":"...","params":{...}}
+const pickNumber = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) ? Math.round(v) : undefined;
+
+const pickText = (v: unknown): string | undefined => {
+  if (typeof v !== "string") return undefined;
+  const clean = v.replace(/\s+/g, " ").trim().slice(0, 60);
+  return clean || undefined;
+};
+
+const MAX_AREA = 8;
+
+/** Ringkasan dari klien dibersihkan: hanya field yang dikenal, angka dibulatkan. */
+function readSnapshot(input: unknown): AsistenSnapshot | null {
+  if (!input || typeof input !== "object") return null;
+  const o = input as Record<string, unknown>;
+
+  const periode = pickText(o.periode);
+  const bulan = pickNumber(o.bulan);
+  if (!periode || bulan === undefined || bulan < 0 || bulan > 11) return null;
+
+  const snap: AsistenSnapshot = { periode, bulan };
+
+  const b = o.bulanan;
+  if (b && typeof b === "object") {
+    const x = b as Record<string, unknown>;
+    const target = pickNumber(x.target) ?? 0;
+    const aktual = pickNumber(x.aktual) ?? 0;
+    const areaRaw = Array.isArray(x.area) ? x.area : [];
+    snap.bulanan = {
+      target,
+      aktual,
+      pcp: pickNumber(x.pcp) ?? (target ? (aktual / target) * 100 : 0),
+      area: areaRaw.slice(0, MAX_AREA).flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const a = item as Record<string, unknown>;
+        const nama = pickText(a.nama);
+        if (!nama) return [];
+        const t = pickNumber(a.target) ?? 0;
+        const ac = pickNumber(a.aktual) ?? 0;
+        return [{ nama, target: t, aktual: ac, pcp: pickNumber(a.pcp) ?? (t ? (ac / t) * 100 : 0) }];
+      }),
+    };
+  }
+
+  const toko = o.toko;
+  if (toko && typeof toko === "object") {
+    const x = toko as Record<string, unknown>;
+    snap.toko = {
+      total: pickNumber(x.total) ?? 0,
+      tanpaTransaksi: pickNumber(x.tanpaTransaksi) ?? 0,
+      bawahTarget: pickNumber(x.bawahTarget) ?? 0,
+      hilangNominal: pickNumber(x.hilangNominal) ?? 0,
+    };
+  }
+
+  const produk = o.produk;
+  if (produk && typeof produk === "object") {
+    const x = produk as Record<string, unknown>;
+    const list = (v: unknown) =>
+      (Array.isArray(v) ? v : []).slice(0, 5).flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const r = item as Record<string, unknown>;
+        const nama = pickText(r.nama);
+        const penjualan = pickNumber(r.penjualan);
+        return nama && penjualan !== undefined ? [{ nama, penjualan }] : [];
+      });
+    snap.produk = { brand: list(x.brand), barang: list(x.barang) };
+  }
+
+  if (!snap.bulanan && !snap.toko && !snap.produk) return null;
+  return snap;
+}
+
+const SYSTEM_PROMPT = `Kamu F.R.I.D.A.Y, asisten data PCP bergaya AI-nya Tony Stark: cekatan, sopan, dan memanggil pengguna "Bos".
+Dua tugasmu: menjawab pertanyaan singkat tentang data dashboard, dan menerjemahkan perintah menjadi aksi navigasi.
+
+Balas HANYA JSON valid tanpa markdown, bentuk:
+{"reply":"...","page":null,"params":{}}
+
+- "reply": 1-2 kalimat bahasa Indonesia yang enak diucapkan mesin suara (tanpa emoji, markdown, atau daftar). Sebut angka HANYA dari "ringkasan". Kalau angkanya tidak ada di ringkasan, katakan datanya belum termuat — jangan mengarang.
+- "page": halaman yang perlu dibuka, atau null kalau cukup menjawab.
+- "params": hanya parameter valid untuk halaman itu.
 
 Halaman dan parameter yang valid:
 - beranda: tanpa parameter
@@ -58,15 +139,20 @@ Halaman dan parameter yang valid:
 - produk: area, kategori, brand, cari, urut (pj-desc/pj-asc/qty-desc/qty-asc)
 
 Aturan:
-- Isi hanya parameter yang benar-benar disebut pengguna.
+- Isi parameter hanya yang benar-benar disebut pengguna.
 - Nilai area/brand/kabupaten/kecamatan/kategori harus disalin persis dari "opsi" bila ada.
 - Nama toko atau wilayah yang tidak ada di opsi taruh di q (dap) atau cari (produk).
 - "tanpa transaksi"/"tidak order"/"hilang" -> trx TANPA. "di bawah target" -> trx BAWAH.
 - Permintaan peringkat ("tertinggi", "terendah", "top") -> isi urut + arah, jangan taruh kata itu di q/cari.
-- Jangan mengarang angka atau data. Kalau perintah tidak jelas, balas {"page":null}.`;
+- Sapaan, basa-basi, dan pertanyaan angka cukup dijawab di "reply" dengan page null.
+- Kalau perintah tidak jelas, minta klarifikasi singkat di "reply" dan page null.`;
 
 /** Panggil model (OpenAI-compatible). Null kalau tidak dikonfigurasi/gagal. */
-async function viaModel(text: string, options: AsistenOptions): Promise<AsistenResult | null> {
+async function viaModel(
+  text: string,
+  options: AsistenOptions,
+  snapshot: AsistenSnapshot | null,
+): Promise<AsistenResult | null> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
 
@@ -82,10 +168,17 @@ async function viaModel(text: string, options: AsistenOptions): Promise<AsistenR
       },
       body: JSON.stringify({
         model,
-        temperature: 0,
+        temperature: 0.2,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: JSON.stringify({ perintah: text, opsi: options }) },
+          {
+            role: "user",
+            content: JSON.stringify({
+              perintah: text,
+              opsi: options,
+              ringkasan: snapshot ?? "belum ada data dashboard yang termuat",
+            }),
+          },
         ],
       }),
       signal: AbortSignal.timeout(15_000),
@@ -103,17 +196,29 @@ async function viaModel(text: string, options: AsistenOptions): Promise<AsistenR
     const end = content.lastIndexOf("}");
     if (start === -1 || end <= start) return null;
 
-    const action = sanitizeAction(JSON.parse(content.slice(start, end + 1)));
-    if (!action) return null;
+    const parsed: unknown = JSON.parse(content.slice(start, end + 1));
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const obj = parsed as Record<string, unknown>;
+    const action = sanitizeAction({ page: obj.page, params: obj.params });
+    const reply = typeof obj.reply === "string"
+      ? obj.reply.replace(/\s+/g, " ").trim().slice(0, 400)
+      : "";
+
+    if (!action && !reply) return null;
 
     // bulan bisa dikirim sebagai nama ("Oktober") — normalisasi sekali lagi
-    if (action.params.bulan) {
+    if (action?.params.bulan) {
       const b = normalizeParam(action.page, "bulan", action.params.bulan);
       if (b) action.params.bulan = b;
       else delete action.params.bulan;
     }
 
-    return { reply: describeAction(action), action, source: "ai" };
+    return {
+      reply: reply || describeAction(action!),
+      action,
+      source: "ai",
+    };
   } catch {
     return null;
   }
@@ -139,9 +244,10 @@ export async function POST(request: Request) {
   }
 
   const options = readOptions(payload.options);
+  const snapshot = readSnapshot(payload.snapshot);
 
-  const fromModel = await viaModel(text, options);
-  const result = fromModel ?? parseAsistenCommand(text, options);
+  const fromModel = await viaModel(text, options, snapshot);
+  const result = fromModel ?? parseAsistenCommand(text, options, new Date(), snapshot ?? undefined);
 
   return Response.json(result, { headers: { "Cache-Control": "no-store" } });
 }
