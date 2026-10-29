@@ -9,8 +9,8 @@ import {
 } from "@/lib/asisten";
 import { buildSnapshot } from "@/lib/asistenSnapshot";
 import {
-  VOICE_LANG, cancelSpeech, currentVoice, getRecognitionCtor, micSupported, recognitionErrorText,
-  speak, ttsSupported, watchVoices,
+  VOICE_LANG, cancelSpeech, currentVoice, getRecognitionCtor, micSupported, playError, playReady,
+  playThinking, recognitionErrorText, speak, ttsSupported, watchVoices,
   type PickedVoice, type SpeechRecognitionLike,
 } from "@/lib/voice";
 import Icn from "./Icn";
@@ -40,6 +40,23 @@ function readPref(key: string, fallback: string): string {
   } catch {
     return fallback;
   }
+}
+
+/** Equalizer kecil: menandakan F.R.I.D.A.Y sedang mendengar / berpikir / bicara. */
+function VoiceBars({ tone }: { tone: string }) {
+  return (
+    <span aria-hidden className="flex h-3 w-3.5 shrink-0 items-end justify-center gap-[1.5px]">
+      {[0, 1, 2].map((i) => (
+        <motion.span
+          key={i}
+          className={`w-[2px] rounded-full ${tone}`}
+          style={{ height: "35%" }}
+          animate={{ height: ["25%", "100%", "45%", "80%", "25%"] }}
+          transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.14, ease: "easeInOut" }}
+        />
+      ))}
+    </span>
+  );
 }
 
 const uniq = (xs: (string | undefined)[]) =>
@@ -95,6 +112,8 @@ export default function Asisten() {
   const handsFreeRef = useRef(handsFree);
   const openRef = useRef(open);
   const kirimRef = useRef<(text: string) => void>(() => {});
+  const greetingRef = useRef(false);
+  const lastGreetingRef = useRef(0);
 
   const nextId = () => (idRef.current += 1);
   /** simpan hanya 40 pesan terakhir supaya panel tetap ringan */
@@ -183,6 +202,7 @@ export default function Asisten() {
     setInterim("");
     setBusy(true);
     pushMsg({ id: nextId(), role: "user", text });
+    if (voiceOutRef.current) playThinking();
 
     try {
       const res = await fetch("/api/asisten", {
@@ -198,6 +218,7 @@ export default function Asisten() {
       if (!res.ok) throw new Error(data.error || "Asisten sedang tidak bisa dihubungi.");
 
       pushMsg({ id: nextId(), role: "ai", text: data.reply, action: data.action });
+      if (voiceOutRef.current) playReady();
       if (data.action) router.push(actionUrl(data.action));
 
       // Mode tangan bebas: mulai dengar lagi setelah FRIDAY selesai menjawab.
@@ -221,6 +242,7 @@ export default function Asisten() {
         lanjutDengar();
       }
     } catch (err) {
+      if (voiceOutRef.current) playError();
       pushMsg({
         id: nextId(),
         role: "ai",
@@ -243,6 +265,28 @@ export default function Asisten() {
     recognitionRef.current?.abort();
     cancelSpeech();
   }, []);
+
+  // Sapaan pembuka: F.R.I.D.A.Y menyapa dengan suara saat panel dibuka (maks. sekali/45 detik).
+  useEffect(() => {
+    if (!open) {
+      greetingRef.current = false;
+      return;
+    }
+    if (greetingRef.current) return;
+    greetingRef.current = true;
+
+    if (!canSpeak || !voiceOutRef.current) return;
+    if (Date.now() - lastGreetingRef.current < 45_000) return;
+    lastGreetingRef.current = Date.now();
+
+    speak(`${sapaWaktu()}, Bos. F.R.I.D.A.Y online dan semua sistem siap. Mau saya bukakan data apa?`, {
+      onStart: () => setSpeaking(true),
+      onEnd: () => {
+        setSpeaking(false);
+        if (handsFreeRef.current && openRef.current) startListening();
+      },
+    });
+  }, [open, canSpeak, startListening]);
 
   /** Tutup panel sekaligus hentikan mikrofon & suara. */
   const tutupPanel = useCallback(() => {
@@ -452,14 +496,11 @@ export default function Asisten() {
               {(canListen || canSpeak) && (
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3.5 py-2 text-[0.72rem] text-slate-400">
                   <span className="flex min-w-0 items-center gap-1.5">
-                    <span
-                      aria-hidden
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        listening ? "animate-pulse bg-rose-400"
-                          : speaking ? "animate-pulse bg-cyan-400"
-                            : "bg-slate-500"
-                      }`}
-                    />
+                    {listening || speaking || busy ? (
+                      <VoiceBars tone={listening ? "bg-rose-400" : speaking ? "bg-cyan-400" : "bg-indigo-400"} />
+                    ) : (
+                      <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500" />
+                    )}
                     <span className={`truncate ${voiceError ? "text-rose-300" : ""}`}>{statusText}</span>
                   </span>
                   {canListen && (

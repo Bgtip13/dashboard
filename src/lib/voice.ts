@@ -173,6 +173,69 @@ export interface SpeakHandlers {
   onEnd?: () => void;
 }
 
+/* --------------------------------- efek audio --------------------------------- */
+
+let audioCtx: AudioContext | null = null;
+
+function audioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    AudioContext?: typeof AudioContext;
+    webkitAudioContext?: typeof AudioContext;
+  };
+  const Ctor = w.AudioContext ?? w.webkitAudioContext;
+  if (!Ctor) return null;
+  if (!audioCtx) {
+    try {
+      audioCtx = new Ctor();
+    } catch {
+      return null;
+    }
+  }
+  if (audioCtx.state === "suspended") void audioCtx.resume();
+  return audioCtx;
+}
+
+/** Satu nada pendek dengan amplop halus supaya tidak berisik. */
+function blip(ctx: AudioContext, freq: number, delay: number, duration: number, volume = 0.035): void {
+  const t0 = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const amp = ctx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  amp.gain.setValueAtTime(0.0001, t0);
+  amp.gain.linearRampToValueAtTime(volume, t0 + 0.012);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+
+  osc.connect(amp).connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration + 0.03);
+}
+
+/** Nada naik-turun singkat saat F.R.I.D.A.Y memproses perintah. */
+export function playThinking(): void {
+  const ctx = audioContext();
+  if (!ctx) return;
+  blip(ctx, 660, 0, 0.12);
+  blip(ctx, 880, 0.09, 0.16);
+}
+
+/** Nada konfirmasi halus saat jawaban siap. */
+export function playReady(): void {
+  const ctx = audioContext();
+  if (!ctx) return;
+  blip(ctx, 1040, 0, 0.1);
+  blip(ctx, 1560, 0.07, 0.16, 0.026);
+}
+
+/** Nada rendah saat perintah gagal diproses. */
+export function playError(): void {
+  const ctx = audioContext();
+  if (!ctx) return;
+  blip(ctx, 320, 0, 0.2, 0.042);
+}
+
 let endTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Hentikan ucapan yang sedang berjalan. */
