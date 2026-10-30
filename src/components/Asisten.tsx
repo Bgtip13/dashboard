@@ -416,7 +416,7 @@ export default function Asisten() {
                   aria-pressed={voiceOut}
                   aria-label={voiceOut ? "Matikan suara jawaban" : "Aktifkan suara jawaban"}
                   title={voiceOut
-                    ? `Suara aktif — ${voice.label || "bawaan"} (${voice.lang})`
+                    ? `Suara aktif — gaya F.R.I.D.A.Y · ${voice.label || "bawaan"} (${voice.lang})`
                     : "Suara jawaban nonaktif"}
                   className={`rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${
                     voiceOut

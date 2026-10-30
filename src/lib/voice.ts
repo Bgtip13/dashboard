@@ -156,6 +156,8 @@ export function watchVoices(onChange: (picked: PickedVoice) => void): () => void
 export function cleanForSpeech(text: string): string {
   return text
     .replace(/https?:\/\/\S+/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // tautan markdown → labelnya saja
+    .replace(/[[\]]/g, " ")
     .replace(/\bF\.?\s?R\.?\s?I\.?\s?D\.?\s?A\.?\s?Y\.?\b/gi, "Friday")
     .replace(/[•·▪◦▶►→←↑↓]/g, ", ")
     .replace(/[*_`#>|]/g, " ")
@@ -171,6 +173,63 @@ export function cleanForSpeech(text: string): string {
 export interface SpeakHandlers {
   onStart?: () => void;
   onEnd?: () => void;
+}
+
+/**
+ * Karakter suara F.R.I.D.A.Y (Marvel): perempuan, nada agak rendah, tempo tenang
+ * dan menimbang. Timbre aslinya (Kerry Condon, aksen Irlandia) tidak bisa ditiru
+ * Web Speech API, jadi yang didekati adalah tinggi nada dan ritmenya.
+ */
+const FRIDAY = {
+  pitch: 0.92, // turun dari 1.18 — tidak cempreng, terasa lebih dewasa
+  rate: 0.94, // sedikit di bawah normal — tidak terburu-buru
+  volume: 0.98,
+} as const;
+
+/** Jeda pendek antar kalimat supaya ritmenya terasa tenang, bukan mengalir terus. */
+const JEDA_MS = 90;
+
+/**
+ * Pecah jawaban jadi beberapa potongan kalimat sebelum diucapkan. Dua manfaat:
+ * jeda antar kalimat terasa tenang seperti F.R.I.D.A.Y, dan Chrome tidak
+ * memotong ucapan yang panjang di tengah jalan.
+ */
+export function potongKalimat(teks: string, batas = 190): string[] {
+  const kalimat = (teks.match(/[^.!?;]+[.!?;]*/g) ?? [teks])
+    .map((k) => k.trim())
+    .flatMap((k) => (k.length > batas ? pecahKoma(k, batas) : [k]))
+    .filter(Boolean);
+
+  const hasil: string[] = [];
+  let buf = "";
+  for (const bagian of kalimat) {
+    const gabung = buf ? `${buf} ${bagian}` : bagian;
+    if (gabung.length <= batas) {
+      buf = gabung;
+      continue;
+    }
+    if (buf) hasil.push(buf);
+    buf = bagian;
+  }
+  if (buf) hasil.push(buf);
+  return hasil;
+}
+
+/** Kalimat kepanjangan dipecah di koma terdekat supaya tidak putus di tengah kata. */
+function pecahKoma(teks: string, batas: number): string[] {
+  const hasil: string[] = [];
+  let buf = "";
+  for (const bagian of teks.split(/,\s*/)) {
+    const calon = buf ? `${buf}, ${bagian}` : bagian;
+    if (calon.length <= batas) {
+      buf = calon;
+      continue;
+    }
+    if (buf) hasil.push(buf);
+    buf = bagian;
+  }
+  if (buf) hasil.push(buf);
+  return hasil;
 }
 
 /* --------------------------------- efek audio --------------------------------- */
@@ -253,7 +312,7 @@ export function cancelSpeech(): void {
 }
 
 /**
- * Ucapkan teks dengan suara wanita Indonesia.
+ * Ucapkan teks dengan suara wanita Indonesia bernada tenang ala F.R.I.D.A.Y.
  * Mengembalikan false kalau browser tidak mendukung / teks kosong.
  */
 export function speak(text: string, handlers: SpeakHandlers = {}): boolean {
@@ -265,14 +324,8 @@ export function speak(text: string, handlers: SpeakHandlers = {}): boolean {
   const synth = window.speechSynthesis;
   cancelSpeech();
 
-  const utterance = new SpeechSynthesisUtterance(clean);
   const picked = pickVoice(synth.getVoices());
-  if (picked.voice) utterance.voice = picked.voice;
-  utterance.lang = picked.lang;
-  // Sedikit lebih tinggi & cepat → karakter FRIDAY yang lincah.
-  utterance.pitch = 1.18;
-  utterance.rate = 1.02;
-  utterance.volume = 1;
+  const potongan = potongKalimat(clean);
 
   let done = false;
   const finish = () => {
@@ -285,16 +338,50 @@ export function speak(text: string, handlers: SpeakHandlers = {}): boolean {
     handlers.onEnd?.();
   };
 
-  utterance.onstart = () => handlers.onStart?.();
-  utterance.onend = finish;
-  utterance.onerror = finish;
-
   // Chrome kadang tidak memicu onend; timer ini menjaga status UI tidak macet.
-  const perkiraanMs = Math.min(60_000, 2_500 + clean.length * 90);
-  endTimer = setTimeout(finish, perkiraanMs);
+  const jaga = (teks: string) => {
+    if (endTimer) clearTimeout(endTimer);
+    endTimer = setTimeout(finish, Math.min(60_000, 2_000 + teks.length * 95));
+  };
+
+  /** Ucapkan potongan ke-i, lalu lanjut ke berikutnya setelah jeda pendek. */
+  const ucap = (i: number): void => {
+    if (done) return;
+    if (i >= potongan.length) {
+      finish();
+      return;
+    }
+
+    const teks = potongan[i];
+    const utterance = new SpeechSynthesisUtterance(teks);
+    if (picked.voice) utterance.voice = picked.voice;
+    utterance.lang = picked.lang;
+    utterance.pitch = FRIDAY.pitch;
+    utterance.rate = FRIDAY.rate;
+    utterance.volume = FRIDAY.volume;
+
+    utterance.onstart = () => {
+      if (i === 0) handlers.onStart?.();
+    };
+    utterance.onend = () => {
+      if (i + 1 >= potongan.length) {
+        finish();
+        return;
+      }
+      setTimeout(() => ucap(i + 1), JEDA_MS);
+    };
+    utterance.onerror = finish;
+
+    jaga(teks);
+    try {
+      synth.speak(utterance);
+    } catch {
+      finish();
+    }
+  };
 
   try {
-    synth.speak(utterance);
+    ucap(0);
   } catch {
     finish();
     return false;
