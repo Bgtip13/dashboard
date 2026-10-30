@@ -2,8 +2,9 @@
  * F.R.I.D.A.Y — menerjemahkan perintah bahasa Indonesia menjadi aksi navigasi
  * (halaman + filter) di dashboard. Dipakai server (parse) dan klien (URL).
  *
- * Prinsip: kalau perintah tidak jelas, jangan membuka halaman kosong —
- * balas dengan daftar kemampuan supaya pengguna tahu harus menulis apa.
+ * Prinsip: kalau perintah tidak jelas, jangan membuka halaman kosong dan jangan
+ * mengarang jawaban — cukup balas "Saya tidak paham, Bos." supaya pengguna tahu
+ * perintahnya tidak dikenali (bukan salah data).
  */
 
 import { answerFromSnapshot, type AsistenSnapshot } from "./asistenSnapshot";
@@ -38,16 +39,18 @@ const ALLOWED_PARAMS: Record<AsistenPage, readonly string[]> = {
   beranda: [],
   bulanan: ["area"],
   mingguan: ["area", "minggu"],
-  dap: ["area", "kab", "kec", "q", "bulan", "trx", "alasan", "urut", "arah"],
+  dap: ["area", "kab", "kec", "q", "bulan", "trx", "alasan", "tren", "urut", "arah"],
   produk: ["area", "kategori", "brand", "cari", "urut"],
 };
 
 const TRX = ["ALL", "AKTIF", "BAWAH", "TANPA"] as const;
+const TREN = ["ALL", "TURUN", "NAIK"] as const;
 const ALASAN = ["ALL", "BERHENTI", "IDLE2", "BELUM", "TUTUP"] as const;
 const PRODUK_URUT = ["pj-desc", "pj-asc", "qty-desc", "qty-asc"] as const;
 export const DAP_SORT_KEYS = [
   "area", "kabupaten", "kecamatan", "toko", "adm", "kelasToko", "aktual",
-  "omsetYtd", "kontrib", "avg", "bulanPasif", "targetToko", "hilang", "status", "pcp",
+  "omsetYtd", "kontrib", "avg", "bulanPasif", "targetToko", "hilang", "selisih",
+  "status", "pcp",
 ] as const;
 
 export const BULAN = [
@@ -81,12 +84,23 @@ const DAP_SORT_LABEL: Record<string, string> = {
   area: "area", kabupaten: "kabupaten", kecamatan: "kecamatan", toko: "nama toko", adm: "ADM",
   kelasToko: "kelas toko", aktual: "aktual bulan ini", omsetYtd: "omset YTD",
   kontrib: "kontribusi", avg: "rata-rata per bulan", bulanPasif: "bulan pasif",
-  targetToko: "target toko", hilang: "nominal hilang", status: "status", pcp: "PCP",
+  targetToko: "target toko", hilang: "nominal hilang", selisih: "selisih vs bulan lalu",
+  status: "status", pcp: "PCP",
 };
+
+const TREN_LABEL: Record<string, string> = {
+  ALL: "",
+  TURUN: "penjualan turun vs bulan lalu",
+  NAIK: "penjualan naik vs bulan lalu",
+};
+
+/** Jawaban wajib saat perintah tidak dikenali — jangan menebak, jangan mengarang. */
+export const TIDAK_PAHAM = "Saya tidak paham, Bos.";
 
 export const HELP_REPLY = [
   "Saya F.R.I.D.A.Y — bisa membuka data apa pun di dashboard ini. Contoh perintah:",
   "• “buka DAP toko tanpa transaksi di Semarang”",
+  "• “buka penjualan yang turun bulan ini” — daftar toko menurun, urut penurunan terbesar",
   "• “toko omset tertinggi kabupaten Sleman”",
   "• “buka produk brand Wardah urut qty terbanyak”",
   "• “pencapaian bulanan area DIY” / “pencapaian mingguan area Solo minggu 2”",
@@ -248,7 +262,10 @@ const SEARCH_VERBS = ["cari", "carikan", "temukan", "temuin", "search", "cek", "
 const PAGE_WORDS: Record<AsistenPage, readonly string[]> = {
   produk: ["produk", "barang", "brand", "merek", "sku", "item", "artikel"],
   mingguan: ["minggu", "mingguan", "week", "w1", "w2", "w3", "w4", "w5"],
-  dap: ["dap", "toko", "tokonya", "outlet", "pelanggan", "kabupaten", "kecamatan", "churn"],
+  dap: [
+    "dap", "toko", "tokonya", "outlet", "pelanggan", "kabupaten", "kecamatan", "churn",
+    "omset", "omzet", "penjualan", "jualan", "sales",
+  ],
   bulanan: ["bulanan", "pencapaian", "target", "gauge", "ringkasan", "performa", "performa"],
   beranda: ["beranda", "home", "dashboard", "halaman utama", "awal", "utama"],
 };
@@ -309,6 +326,17 @@ const ALASAN_PHRASES: [string, string][] = [
   ["stop order", "BERHENTI"],
   ["churn", "BERHENTI"],
 ];
+
+/** Kata yang menandakan tren penjualan bulan ini vs bulan sebelumnya. */
+const TREN_PHRASES: [string, "TURUN" | "NAIK"][] = [
+  ["turun", "TURUN"], ["menurun", "TURUN"], ["penurunan", "TURUN"], ["turunnya", "TURUN"],
+  ["anjlok", "TURUN"], ["merosot", "TURUN"], ["melorot", "TURUN"], ["menyusut", "TURUN"],
+  ["melemah", "TURUN"], ["lesu", "TURUN"], ["drop", "TURUN"], ["decline", "TURUN"],
+  ["naik", "NAIK"], ["kenaikan", "NAIK"], ["meningkat", "NAIK"], ["meningkatnya", "NAIK"],
+  ["tumbuh", "NAIK"], ["growth", "NAIK"],
+];
+
+const OMSET_WORDS = ["omset", "omzet", "penjualan", "jualan", "sales"];
 
 const AREA_ALIAS: Record<string, string> = {
   jogja: "DIY", jogjakarta: "DIY", jogya: "DIY", yogyakarta: "DIY", yogya: "DIY", diy: "DIY",
@@ -451,6 +479,10 @@ export function normalizeParam(page: AsistenPage, key: string, value: string): s
       const up = v.toUpperCase();
       return (ALASAN as readonly string[]).includes(up) ? up : null;
     }
+    case "tren": {
+      const up = v.toUpperCase();
+      return (TREN as readonly string[]).includes(up) ? up : null;
+    }
     case "urut": {
       if (page === "dap") {
         const key2 = DAP_SORT_KEYS.find((k) => k.toLowerCase() === v.toLowerCase());
@@ -537,6 +569,7 @@ export function describeAction(action: AsistenAction): string {
   if (p.kab) parts.push(`kabupaten ${p.kab}`);
   if (p.kec) parts.push(`kecamatan ${p.kec}`);
   if (p.bulan) parts.push(`periode ${BULAN[Number(p.bulan)] ?? p.bulan}`);
+  if (p.tren && p.tren !== "ALL") parts.push(TREN_LABEL[p.tren] ?? p.tren);
   if (p.trx) parts.push(TRX_LABEL[p.trx] ?? p.trx);
   if (p.alasan && p.alasan !== "ALL") parts.push(ALASAN_LABEL[p.alasan] ?? p.alasan);
   if (p.urut) {
@@ -596,7 +629,11 @@ export function parseAsistenCommand(
   // kata yang tidak perlu ikut jadi kata kunci pencarian
   const drop = new Set<string>(STOPWORDS);
   for (const words of Object.values(PAGE_WORDS)) for (const w of words) drop.add(w);
-  for (const phrase of [...TRX_PHRASES.map(([p]) => p), ...ALASAN_PHRASES.map(([p]) => p)]) {
+  for (const phrase of [
+    ...TRX_PHRASES.map(([p]) => p),
+    ...ALASAN_PHRASES.map(([p]) => p),
+    ...TREN_PHRASES.map(([p]) => p),
+  ]) {
     for (const w of tokens(phrase)) drop.add(w);
   }
   for (const [w] of MONTH_WORDS) drop.add(w);
@@ -616,7 +653,7 @@ export function parseAsistenCommand(
       for (const x of t) if (x === alias || fuzzyEqual(x, alias)) drop.add(x);
     }
   }
-  for (const w of [...ASC_WORDS, ...DESC_WORDS, ...SORT_VERBS]) drop.add(w);
+  for (const w of [...ASC_WORDS, ...DESC_WORDS, ...SORT_VERBS, ...OMSET_WORDS]) drop.add(w);
 
   const residual = t.filter((w) => !drop.has(w) && w.length > 1 && !/^\d+$/.test(w)).join(" ").trim();
   const sort = detectDapSort(t);
@@ -631,9 +668,10 @@ export function parseAsistenCommand(
     else if ((searchVerb || hasVerb) && (residual || DAP_METRICS.some(([w]) => t.includes(w)))) page = "dap";
   }
 
-  // Tidak ada halaman/entitas yang bisa dipastikan -> bantuan, bukan halaman kosong
+  // Tidak ada halaman/entitas yang bisa dipastikan -> akui tidak paham,
+  // jangan membuka halaman acak atau mengarang data.
   if (!page) {
-    return { reply: HELP_REPLY, action: null, source: "rule" };
+    return { reply: TIDAK_PAHAM, action: null, source: "rule" };
   }
 
   // Pertanyaan murni ("berapa ...") tetap diarahkan ke halaman yang relevan
@@ -672,6 +710,20 @@ export function parseAsistenCommand(
     } else if (containsPhrase(n, "di atas target") || containsPhrase(n, "melampaui target") || containsPhrase(n, "surplus")) {
       params.trx = "AKTIF";
       if (!sort) { params.urut = "pcp"; params.arah = "desc"; }
+    }
+
+    // "penjualan turun" / "omset naik" -> filter tren + urut selisih terbesar
+    const tren = TREN_PHRASES.find(([phrase]) => containsPhrase(n, phrase))?.[1];
+    if (tren) {
+      params.tren = tren;
+      if (!sort) {
+        params.urut = "selisih";
+        params.arah = tren === "TURUN" ? "asc" : "desc";
+      }
+    } else if (!sort && !params.trx && !residual && t.some((w) => OMSET_WORDS.includes(w))) {
+      // "buka omset" tanpa filter -> daftar toko urut omset terbesar
+      params.urut = "omsetYtd";
+      params.arah = "desc";
     }
 
     if (sort) {

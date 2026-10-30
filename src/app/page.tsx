@@ -3,13 +3,23 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { fetchMonthly } from "@/lib/api";
+import { fetchDap, fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
-import { hariEfektif, rp } from "@/lib/utils";
+import { hariEfektif, rp, rpShort } from "@/lib/utils";
+import {
+  ambangTargetBesar, ringkasTren, teratasBawahTarget, teratasKurangTransaksi,
+  type SorotanToko,
+} from "@/lib/dapSegment";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
+import SorotanTokoList from "@/features/beranda/SorotanToko";
 
 const NAMA = "Bagus Triawan";
+
+const MONTHS = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
 
 function greeting(h: number) {
   if (h >= 4 && h < 11) return "Selamat pagi";
@@ -26,11 +36,13 @@ const NAV = [
 
 export default function BerandaPage() {
   const { data } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
+  const { data: dap, isLoading: dapLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
+    // Jam baru diisi setelah mount (hindari hydration mismatch server/klien)
+    const first = setTimeout(() => setNow(new Date()), 0);
     const t = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(t);
+    return () => { clearTimeout(first); clearInterval(t); };
   }, []);
 
   const rows = useMemo(() => (data?.rows ?? []).filter((r) => r.area !== "GLOBAL"), [data]);
@@ -39,11 +51,24 @@ export default function BerandaPage() {
   const pcp = tgt ? (act / tgt) * 100 : 0;
   const badge = getBadge(pcp);
   const trip = { jalan: rows.reduce((s, r) => s + r.trip, 0), total: rows.reduce((s, r) => s + r.tripKuota, 0) };
-  const kon = { potensi: rows.reduce((s, r) => s + r.potensi, 0), aktif: rows.reduce((s, r) => s + r.taTotal, 0) };
   const he = hariEfektif();
   const kejar = Math.max(tgt - act, 0);
   const sisaHe = Math.max(he.total - he.berjalan, 0);
   const ritme = sisaHe > 0 ? kejar / sisaHe : 0;
+
+  // Sorotan DAP di beranda — memakai data toko yang sama dengan halaman DAP
+  const dapRows = useMemo(() => dap?.rows ?? [], [dap]);
+  const bulan = now ? now.getMonth() : new Date().getMonth();
+  const dapTren = useMemo(() => ringkasTren(dapRows, bulan), [dapRows, bulan]);
+  const sorotan = useMemo<{ bawah: SorotanToko[]; kurang: SorotanToko[]; ambang: number }>(() => {
+    const ambang = ambangTargetBesar(dapRows);
+    return {
+      bawah: teratasBawahTarget(dapRows, bulan, 10),
+      kurang: teratasKurangTransaksi(dapRows, bulan, 10, ambang),
+      ambang,
+    };
+  }, [dapRows, bulan]);
+  const totalKurang = sorotan.bawah.reduce((s, t) => s + t.gap, 0);
 
   const h = now?.getHours() ?? 0;
   const jam = now ? String(now.getHours()).padStart(2, "0") : "--";
@@ -71,7 +96,21 @@ export default function BerandaPage() {
               {greeting(h)}, <span className="bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">{NAMA}</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }}
-              className="mt-2 text-base text-slate-400">Semangat mengejar target hari ini 🚀</motion.p>
+              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-slate-400">
+              {dapRows.length > 0 ? (
+                <>
+                  <span><b className="text-slate-200">{dapRows.length}</b> toko DAP</span>
+                  <span className="text-slate-600">·</span>
+                  <span><b className="text-rose-300">{dapTren.turun}</b> turun</span>
+                  <span className="text-slate-600">·</span>
+                  <span><b className="text-emerald-300">{dapTren.naik}</b> naik</span>
+                  <span className="text-slate-600">·</span>
+                  <span>vs {MONTHS[bulan > 0 ? bulan - 1 : 11]}</span>
+                </>
+              ) : (
+                "Semangat mengejar target hari ini 🚀"
+              )}
+            </motion.p>
           </div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
             className="text-right">
@@ -122,6 +161,35 @@ export default function BerandaPage() {
             className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${badge.bg}, ${badge.color})` }} />
         </div>
       </motion.div>
+
+      {/* Sorotan DAP: siapa yang perlu dikejar bulan ini */}
+      <div>
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-xl font-bold">Sorotan DAP · {MONTHS[bulan]}</h2>
+          <p className="text-sm text-slate-400">
+            Top 10 di bawah target kurang <span className="font-semibold text-amber-300">{rpShort(totalKurang)}</span>
+            {sorotan.ambang > 0 && <> · target besar ≥ {rpShort(sorotan.ambang)}</>}
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <SorotanTokoList
+            title="10 Toko Penjualan di Bawah Target"
+            hint={`Sudah transaksi ${MONTHS[bulan]} tapi belum mencapai target toko — urut kekurangan terbesar`}
+            items={sorotan.bawah}
+            mode="bawah"
+            href="/dap?trx=BAWAH&urut=pcp&arah=asc"
+            empty={dapLoading ? "Memuat data DAP…" : "Belum ada toko yang di bawah target bulan ini."}
+          />
+          <SorotanTokoList
+            title="10 Toko Target Besar, Transaksi Kurang"
+            hint={`Target besar tapi realisasi ${MONTHS[bulan]} belum separuh target — urut target terbesar`}
+            items={sorotan.kurang}
+            mode="kurang"
+            href="/dap?urut=targetToko&arah=desc"
+            empty={dapLoading ? "Memuat data DAP…" : "Tidak ada toko target besar yang tertinggal."}
+          />
+        </div>
+      </div>
 
       {/* Akses cepat */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

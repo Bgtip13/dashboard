@@ -94,11 +94,28 @@ function readSnapshot(input: unknown): AsistenSnapshot | null {
   const toko = o.toko;
   if (toko && typeof toko === "object") {
     const x = toko as Record<string, unknown>;
+    const topTurun = (Array.isArray(x.topTurun) ? x.topTurun : []).slice(0, 5).flatMap((item) => {
+      if (!item || typeof item !== "object") return [];
+      const t = item as Record<string, unknown>;
+      const nama = pickText(t.nama);
+      if (!nama) return [];
+      return [{
+        nama,
+        kabupaten: pickText(t.kabupaten) ?? "",
+        sekarang: pickNumber(t.sekarang) ?? 0,
+        sebelumnya: pickNumber(t.sebelumnya) ?? 0,
+        selisih: pickNumber(t.selisih) ?? 0,
+      }];
+    });
     snap.toko = {
       total: pickNumber(x.total) ?? 0,
       tanpaTransaksi: pickNumber(x.tanpaTransaksi) ?? 0,
       bawahTarget: pickNumber(x.bawahTarget) ?? 0,
       hilangNominal: pickNumber(x.hilangNominal) ?? 0,
+      turun: pickNumber(x.turun) ?? 0,
+      naik: pickNumber(x.naik) ?? 0,
+      turunNominal: pickNumber(x.turunNominal) ?? 0,
+      topTurun,
     };
   }
 
@@ -126,7 +143,7 @@ Dua tugasmu: menjawab pertanyaan singkat tentang data dashboard, dan menerjemahk
 Balas HANYA JSON valid tanpa markdown, bentuk:
 {"reply":"...","page":null,"params":{}}
 
-- "reply": 1-2 kalimat bahasa Indonesia yang enak diucapkan mesin suara (tanpa emoji, markdown, atau daftar). Sebut angka HANYA dari "ringkasan". Kalau angkanya tidak ada di ringkasan, katakan datanya belum termuat — jangan mengarang.
+- "reply": 1-2 kalimat bahasa Indonesia yang enak diucapkan mesin suara (tanpa emoji, markdown, atau daftar). Sebut angka HANYA dari "ringkasan". Kalau angkanya tidak ada di ringkasan, jangan menjawab angkanya.
 - "page": halaman yang perlu dibuka, atau null kalau cukup menjawab.
 - "params": hanya parameter valid untuk halaman itu.
 
@@ -135,7 +152,8 @@ Halaman dan parameter yang valid:
 - bulanan: area (GLOBAL/SOLO/DIY/SEMARANG/TAB)
 - mingguan: area (sama), minggu (ALL/M1/M2/M3/M4/M5)
 - dap: area, kab, kec, q, bulan (0-11), trx (ALL/AKTIF/BAWAH/TANPA), alasan (ALL/BERHENTI/IDLE2/BELUM/TUTUP),
-  urut (omsetYtd/aktual/targetToko/pcp/hilang/kontrib/avg/bulanPasif), arah (asc/desc)
+  tren (TURUN/NAIK — penjualan bulan ini vs bulan lalu),
+  urut (omsetYtd/aktual/targetToko/pcp/hilang/selisih/kontrib/avg/bulanPasif), arah (asc/desc)
 - produk: area, kategori, brand, cari, urut (pj-desc/pj-asc/qty-desc/qty-asc)
 
 Aturan:
@@ -143,9 +161,11 @@ Aturan:
 - Nilai area/brand/kabupaten/kecamatan/kategori harus disalin persis dari "opsi" bila ada.
 - Nama toko atau wilayah yang tidak ada di opsi taruh di q (dap) atau cari (produk).
 - "tanpa transaksi"/"tidak order"/"hilang" -> trx TANPA. "di bawah target" -> trx BAWAH.
+- "penjualan turun"/"omset drop"/"anjlok" -> dap dengan tren TURUN, urut selisih, arah asc.
+- "penjualan naik"/"meningkat" -> dap dengan tren NAIK, urut selisih, arah desc.
 - Permintaan peringkat ("tertinggi", "terendah", "top") -> isi urut + arah, jangan taruh kata itu di q/cari.
 - Sapaan, basa-basi, dan pertanyaan angka cukup dijawab di "reply" dengan page null.
-- Kalau perintah tidak jelas, minta klarifikasi singkat di "reply" dan page null.`;
+- Kalau perintah tidak jelas atau tidak berhubungan dengan data dashboard, balas PERSIS {"reply":"Saya tidak paham, Bos.","page":null,"params":{}}. Jangan menebak, jangan mengarang cerita, jangan menawarkan hal lain.`;
 
 /** Panggil model (OpenAI-compatible). Null kalau tidak dikonfigurasi/gagal. */
 async function viaModel(
@@ -168,7 +188,7 @@ async function viaModel(
       },
       body: JSON.stringify({
         model,
-        temperature: 0.2,
+        temperature: 0.1,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           {
@@ -246,8 +266,17 @@ export async function POST(request: Request) {
   const options = readOptions(payload.options);
   const snapshot = readSnapshot(payload.snapshot);
 
+  // Parser lokal dijalankan lebih dulu: hasilnya deterministik dan tervalidasi.
+  const rule = parseAsistenCommand(text, options, new Date(), snapshot ?? undefined);
   const fromModel = await viaModel(text, options, snapshot);
-  const result = fromModel ?? parseAsistenCommand(text, options, new Date(), snapshot ?? undefined);
+
+  // Model hanya dipercaya untuk navigasi atau kalimat tanpa angka.
+  // Semua angka tetap dijawab dari ringkasan lokal, jadi tidak ada jawaban karangan.
+  let result: AsistenResult;
+  if (fromModel?.action) result = fromModel;
+  else if (rule.action) result = rule;
+  else if (fromModel && !/\d/.test(fromModel.reply)) result = fromModel;
+  else result = rule;
 
   return Response.json(result, { headers: { "Cache-Control": "no-store" } });
 }

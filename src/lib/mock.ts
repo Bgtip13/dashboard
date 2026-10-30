@@ -1,4 +1,4 @@
-import type { MonthlyPayload, WeeklyPayload } from "./types";
+import type { DapPayload, DapRow, MonthlyPayload, WeeklyPayload } from "./types";
 
 export const MOCK_MONTHLY: MonthlyPayload = {
   updatedAt: new Date().toISOString(),
@@ -12,6 +12,76 @@ export const MOCK_MONTHLY: MonthlyPayload = {
 };
 
 const jt = (n: number) => n * 1_000_000;
+
+/**
+ * DAP demo: dipakai kalau NEXT_PUBLIC_SHEET_DAP belum diisi, supaya beranda dan
+ * halaman DAP tetap bisa dipakai. Data dibangkitkan deterministik (bukan random
+ * tiap render) dengan pola stabil / turun / kosong / target besar kosong / naik.
+ */
+const AREA_WILAYAH: [string, string, string][] = [
+  ["SEMARANG", "SEMARANG", "GAJAHMUNGKUR"],
+  ["SEMARANG", "KENDAL", "NGALIYAN"],
+  ["SEMARANG", "DEMAK", "MRANGGEN"],
+  ["SEMARANG", "SALATIGA", "ARGOMULYO"],
+  ["SOLO", "SURAKARTA", "BANJARSARI"],
+  ["SOLO", "SUKOHARJO", "GROGOL"],
+  ["SOLO", "KLATEN", "DELANGGU"],
+  ["SOLO", "BOYOLALI", "TERAS"],
+  ["DIY", "YOGYAKARTA", "GONDOKUSUMAN"],
+  ["DIY", "SLEMAN", "DEPOK"],
+  ["DIY", "BANTUL", "BANGUNTAPAN"],
+  ["DIY", "GUNUNGKIDUL", "WONOSARI"],
+];
+
+const AWALAN_TOKO = ["Apotek", "Toko", "Kios", "Warung", "Mini Market", "Grosir", "Sentra"];
+const NAMA_TOKO = ["Sehat", "Sentosa", "Mulia", "Berkah", "Jaya", "Makmur", "Anugrah", "Sinar", "Sumber", "Amanah", "Keluarga", "Barokah"];
+
+function buatDapMock(): DapPayload {
+  let seed = 20260214;
+  const rnd = () => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed / 2147483648;
+  };
+  const pick = <T,>(xs: T[]) => xs[Math.floor(rnd() * xs.length)];
+  const sampai = new Date().getMonth();
+  const rows: DapRow[] = [];
+
+  AREA_WILAYAH.forEach(([area, kabupaten, kecamatan], wi) => {
+    for (let i = 0; i < 4; i++) {
+      const n = rows.length + 1;
+      const pola = n % 5; // 1 turun · 2 kosong · 3 target besar kosong · 4 naik · 0 stabil
+      const targetToko = Math.round((500_000 + rnd() * 3_500_000) / 50_000) * 50_000;
+      const bulanan = Array.from({ length: 12 }, (_, m) => {
+        if (m > sampai) return 0;
+        const dasar = targetToko * (0.75 + rnd() * 0.6);
+        if (pola === 2) return m === sampai ? 0 : Math.round(dasar);
+        if (pola === 3) return m === sampai ? 0 : Math.round(dasar * 0.85);
+        if (pola === 1) return m === sampai ? Math.round(dasar * 0.35) : Math.round(dasar);
+        if (pola === 4) return m === sampai ? Math.round(dasar * 1.2) : Math.round(dasar);
+        return Math.round(dasar);
+      });
+      rows.push({
+        area,
+        kabupaten,
+        kecamatan,
+        toko: `${pick(AWALAN_TOKO)} ${pick(NAMA_TOKO)} ${kecamatan.slice(0, 3)} ${i + 1}`,
+        pelanggan: 0,
+        adm: `ADM ${(wi % 3) + 1}`,
+        kelasToko: pick(["A", "B", "C"]),
+        kelasByr: pick(["CASH", "KREDIT"]),
+        bulanan,
+        omsetYtd: bulanan.reduce((s, v) => s + v, 0),
+        targetToko,
+        status: pola === 2 || pola === 3 ? "PASIF" : "LANCAR",
+        bulanPasif: pola === 2 || pola === 3 ? "1 BULAN" : "",
+      });
+    }
+  });
+
+  return { updatedAt: new Date().toISOString(), rows };
+}
+
+export const MOCK_DAP: DapPayload = buatDapMock();
 
 export const MOCK_WEEKLY: WeeklyPayload = {
   updatedAt: new Date().toISOString(),

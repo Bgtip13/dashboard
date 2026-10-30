@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { parseCsv } from "@/lib/csv";
@@ -138,7 +138,14 @@ function ProdukPageContent() {
     });
   }, [rows, areaEff, kategoriEff, brandEff, cari]);
 
-  useEffect(() => { setPage(0); }, [areaEff, kategoriEff, brandEff, cari, urut]);
+  // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
+  // supaya tidak memicu render berantai lewat effect).
+  const filterKey = `${areaEff}|${kategoriEff}|${brandEff}|${cari}|${urut}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (lastFilterKey !== filterKey) {
+    setLastFilterKey(filterKey);
+    setPage(0);
+  }
 
   const sorted = useMemo(() => {
     const a = [...filtered];

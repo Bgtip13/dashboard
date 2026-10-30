@@ -9,7 +9,8 @@ import { MONTH_SHORT } from "./DapChart";
 const PAGE = 25;
 
 type Enriched = DapRow & {
-  aktual: number; kontrib: number; avg: number; pcp: number;
+  aktual: number; sebelumnya: number; selisih: number;
+  kontrib: number; avg: number; pcp: number;
   kat: Kategori; hilang: number;
 };
 
@@ -53,10 +54,11 @@ export default function DapTable({
 
   const enriched: Enriched[] = useMemo(() => rows.map((r) => {
     const aktual = r.bulanan[monthIdx] ?? 0;
+    const sebelumnya = monthIdx > 0 ? (r.bulanan[monthIdx - 1] ?? 0) : 0;
     const aktifBulan = r.bulanan.filter((v) => v > 0).length || 1;
     const kat = kategori(r, monthIdx);
     return {
-      ...r, aktual, kat,
+      ...r, aktual, sebelumnya, selisih: aktual - sebelumnya, kat,
       hilang: isKerugian(kat) ? r.targetToko : 0,
       kontrib: totalOmset ? (r.omsetYtd / totalOmset) * 100 : 0,
       avg: r.omsetYtd / aktifBulan,
@@ -105,14 +107,14 @@ export default function DapTable({
         </div>
       </div>
       <div className="tbl-scroll">
-      <table className="w-full min-w-[1240px] table-fixed text-[0.8rem] leading-snug">
+      <table className="w-full min-w-[1300px] table-fixed text-[0.8rem] leading-snug">
         <colgroup>
-          <col style={{ width: "2.2%" }} /><col style={{ width: "5.8%" }} /><col style={{ width: "7.2%" }} />
-          <col style={{ width: "9.8%" }} /><col style={{ width: "14.8%" }} /><col style={{ width: "5%" }} />
-          <col style={{ width: "7%" }} /><col style={{ width: "6%" }} /><col style={{ width: "6.6%" }} />
-          <col style={{ width: "4.2%" }} /><col style={{ width: "4.8%" }} /><col style={{ width: "4.8%" }} />
-          <col style={{ width: "5.4%" }} /><col style={{ width: "5.4%" }} /><col style={{ width: "7.2%" }} />
-          <col style={{ width: "3.8%" }} />
+          <col style={{ width: "2.2%" }} /><col style={{ width: "5.4%" }} /><col style={{ width: "6.6%" }} />
+          <col style={{ width: "10.4%" }} /><col style={{ width: "13.4%" }} /><col style={{ width: "4.6%" }} />
+          <col style={{ width: "6.2%" }} /><col style={{ width: "6.2%" }} /><col style={{ width: "5.4%" }} />
+          <col style={{ width: "6%" }} /><col style={{ width: "4.2%" }} /><col style={{ width: "4%" }} />
+          <col style={{ width: "4.6%" }} /><col style={{ width: "5.4%" }} /><col style={{ width: "5.4%" }} />
+          <col style={{ width: "6.2%" }} /><col style={{ width: "3.8%" }} />
         </colgroup>
         <thead>
           <tr className="border-b border-white/10 bg-white/5 text-[0.75rem] text-slate-400">
@@ -124,6 +126,9 @@ export default function DapTable({
             <Th k="adm" sortKey={sortKey} dir={dir} onSort={onSort}>ADM</Th>
             <Th k="kelasToko" sortKey={sortKey} dir={dir} onSort={onSort}>Kelas</Th>
             <Th k="aktual" sortKey={sortKey} dir={dir} onSort={onSort} right>Akt {MONTH_SHORT[monthIdx]}</Th>
+            <Th k="selisih" sortKey={sortKey} dir={dir} onSort={onSort} right>
+              {monthIdx > 0 ? `Δ ${MONTH_SHORT[monthIdx - 1]}` : "Δ"}
+            </Th>
             <Th k="omsetYtd" sortKey={sortKey} dir={dir} onSort={onSort} right>Omset YTD</Th>
             <Th k="kontrib" sortKey={sortKey} dir={dir} onSort={onSort} right>Kontr%</Th>
             <Th k="avg" sortKey={sortKey} dir={dir} onSort={onSort} right>Avg</Th>
@@ -136,7 +141,7 @@ export default function DapTable({
         </thead>
         <tbody>
           {view.length === 0 && (
-            <tr><td colSpan={16} className="px-4 py-8 text-center text-slate-500">Tidak ada toko yang cocok dengan filter</td></tr>
+            <tr><td colSpan={17} className="px-4 py-8 text-center text-slate-500">Tidak ada toko yang cocok dengan filter</td></tr>
           )}
           {view.map((r, i) => {
             const sc = statusColor(r.status);
@@ -161,6 +166,16 @@ export default function DapTable({
                 <td className={td} title={r.adm}>{r.adm}</td>
                 <td className={td} title={`${r.kelasToko} / ${r.kelasByr}`}>{r.kelasToko}{r.kelasByr ? `/${r.kelasByr}` : ""}</td>
                 <td className={`${td} text-right`}>{rpShort(r.aktual)}</td>
+                <td className={`${td} text-right ${
+                  r.selisih < 0 ? "font-semibold text-rose-300" : r.selisih > 0 ? "text-emerald-300" : "text-slate-500"
+                }`}
+                  title={monthIdx > 0
+                    ? `Bulan lalu ${rpShort(r.sebelumnya)} → bulan ini ${rpShort(r.aktual)}`
+                    : "Butuh bulan sebelumnya untuk dibandingkan"}>
+                  {monthIdx === 0 || r.selisih === 0
+                    ? "—"
+                    : `${r.selisih > 0 ? "+" : "−"}${rpShort(Math.abs(r.selisih))}`}
+                </td>
                 <td className={`${td} text-right`}>{rpShort(r.omsetYtd)}</td>
                 <td className={`${td} text-right text-slate-300`}>{r.kontrib.toFixed(2)}%</td>
                 <td className={`${td} text-right text-slate-300`}>{rpShort(r.avg)}</td>

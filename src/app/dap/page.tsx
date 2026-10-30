@@ -7,8 +7,8 @@ import { fetchDap, fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
 import { rp, rpShort } from "@/lib/utils";
 import {
-  KATEGORI, URUTAN_TANPA, diBawahTarget, kategori, hilangPerBulan, hilangPerKabupaten,
-  isKerugian, ringkasSegmentasi, type AlasanFilter, type TrxFilter,
+  KATEGORI, URUTAN_TANPA, cocokTren, diBawahTarget, kategori, hilangPerBulan, hilangPerKabupaten,
+  isKerugian, ringkasSegmentasi, ringkasTren, type AlasanFilter, type TrenFilter, type TrxFilter,
 } from "@/lib/dapSegment";
 import DapChart from "@/features/dap/DapChart";
 import DapTable from "@/features/dap/DapTable";
@@ -108,6 +108,12 @@ function DapPageContent() {
     return (["ALL", "BERHENTI", "IDLE2", "BELUM", "TUTUP"] as const).includes(raw as AlasanFilter)
       ? (raw as AlasanFilter) : "ALL";
   });
+  // Tren bulan ini vs bulan lalu (dipakai F.R.I.D.A.Y untuk "penjualan turun")
+  const [tren, setTren] = useState<TrenFilter>(() => {
+    const raw = (sp.get("tren") ?? "").toUpperCase();
+    return (["ALL", "TURUN", "NAIK"] as const).includes(raw as TrenFilter)
+      ? (raw as TrenFilter) : "ALL";
+  });
   const [selected, setSelected] = useState<DapRow | null>(null);
 
   // urutan kolom awal (dipakai F.R.I.D.A.Y, mis. “toko omset tertinggi”)
@@ -138,16 +144,17 @@ function DapPageContent() {
   }, [all, areaEff, kabEff, kecEff, q]);
 
   const segBase = useMemo(() => ringkasSegmentasi(baseRows, monthIdx), [baseRows, monthIdx]);
+  const segTren = useMemo(() => ringkasTren(baseRows, monthIdx), [baseRows, monthIdx]);
 
   const rows = useMemo(() => {
-    if (trx === "ALL") return baseRows;
-    return baseRows.filter((r) => {
+    const byTrx = trx === "ALL" ? baseRows : baseRows.filter((r) => {
       const k = kategori(r, monthIdx);
       if (trx === "AKTIF") return k === "AKTIF";
       if (trx === "BAWAH") return diBawahTarget(r, monthIdx);
       return k !== "AKTIF" && (alasan === "ALL" || k === alasan);
     });
-  }, [baseRows, trx, alasan, monthIdx]);
+    return tren === "ALL" ? byTrx : byTrx.filter((r) => cocokTren(r, monthIdx, tren));
+  }, [baseRows, trx, alasan, monthIdx, tren]);
 
   const seg = useMemo(() => ringkasSegmentasi(rows, monthIdx), [rows, monthIdx]);
   const lossMonthly = useMemo(() => hilangPerBulan(rows, monthIdx), [rows, monthIdx]);
@@ -244,6 +251,17 @@ function DapPageContent() {
           <FilterGroup label="Transaksi">
             <FilterPills items={trxItems} value={trx} onChange={(k) => setTrx(k as TrxFilter)} id="dap-trx" size="sm" />
           </FilterGroup>
+          {monthIdx > 0 && (
+            <FilterGroup label="Tren">
+              <FilterPills
+                items={[
+                  { key: "ALL" as const, label: <>Semua</>, hint: "Tanpa filter tren" },
+                  { key: "TURUN" as const, label: <>{dot("#fb7185")}Turun {countChip(segTren.turun)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih kecil dari ${MONTHS[monthIdx - 1]}` },
+                  { key: "NAIK" as const, label: <>{dot("#34d399")}Naik {countChip(segTren.naik)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih besar dari ${MONTHS[monthIdx - 1]}` },
+                ]}
+                value={tren} onChange={(k) => setTren(k as TrenFilter)} id="dap-tren" size="sm" />
+            </FilterGroup>
+          )}
           <AnimatePresence initial={false}>
             {trx === "TANPA" && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

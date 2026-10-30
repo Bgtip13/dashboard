@@ -221,3 +221,140 @@ export function hilangPerKabupaten(rows: DapRow[], monthIdx: number, limit = 8):
   }
   return Array.from(map.values()).sort((a, b) => b.nominal - a.nominal).slice(0, limit);
 }
+
+/* ------------------- tren bulan ini vs bulan sebelumnya ------------------- */
+
+/** Filter tren: semua, toko yang turun, atau toko yang naik */
+export type TrenFilter = "ALL" | "TURUN" | "NAIK";
+
+export const TREN_LABEL: Record<TrenFilter, string> = {
+  ALL: "semua tren",
+  TURUN: "penjualan turun",
+  NAIK: "penjualan naik",
+};
+
+/** Omset bulan terpilih dikurangi bulan sebelumnya (negatif = turun). */
+export function selisihBulan(r: DapRow, monthIdx: number): number {
+  if (monthIdx <= 0) return 0;
+  return aktualBulan(r, monthIdx) - aktualBulan(r, monthIdx - 1);
+}
+
+/** Toko menurun: bulan lalu ada transaksi, bulan ini lebih kecil (termasuk turun ke 0). */
+export function isTurun(r: DapRow, monthIdx: number): boolean {
+  if (monthIdx <= 0) return false;
+  const prev = aktualBulan(r, monthIdx - 1);
+  return prev > 0 && aktualBulan(r, monthIdx) < prev;
+}
+
+export function isNaik(r: DapRow, monthIdx: number): boolean {
+  if (monthIdx <= 0) return false;
+  const prev = aktualBulan(r, monthIdx - 1);
+  return prev > 0 && aktualBulan(r, monthIdx) > prev;
+}
+
+export function cocokTren(r: DapRow, monthIdx: number, tren: TrenFilter): boolean {
+  if (tren === "TURUN") return isTurun(r, monthIdx);
+  if (tren === "NAIK") return isNaik(r, monthIdx);
+  return true;
+}
+
+export interface SorotanToko {
+  toko: string;
+  area: string;
+  kabupaten: string;
+  kecamatan: string;
+  adm: string;
+  target: number;
+  aktual: number;
+  sebelumnya: number;
+  /** aktual − bulan lalu */
+  selisih: number;
+  pcp: number;
+  /** target − aktual (0 kalau sudah lewat target) */
+  gap: number;
+}
+
+export function sorotToko(r: DapRow, monthIdx: number): SorotanToko {
+  const aktual = aktualBulan(r, monthIdx);
+  const sebelumnya = monthIdx > 0 ? aktualBulan(r, monthIdx - 1) : 0;
+  return {
+    toko: r.toko,
+    area: r.area,
+    kabupaten: r.kabupaten,
+    kecamatan: r.kecamatan,
+    adm: r.adm,
+    target: r.targetToko,
+    aktual,
+    sebelumnya,
+    selisih: aktual - sebelumnya,
+    pcp: r.targetToko ? (aktual / r.targetToko) * 100 : 0,
+    gap: Math.max(r.targetToko - aktual, 0),
+  };
+}
+
+/** Toko yang sudah transaksi tapi nominal kekurangannya paling besar. */
+export function teratasBawahTarget(rows: DapRow[], monthIdx: number, limit = 10): SorotanToko[] {
+  return rows
+    .filter((r) => diBawahTarget(r, monthIdx))
+    .map((r) => sorotToko(r, monthIdx))
+    .sort((a, b) => b.gap - a.gap)
+    .slice(0, limit);
+}
+
+/** Ambang "target besar": kuartil atas target toko, minimal Rp 1 juta. */
+export function ambangTargetBesar(rows: DapRow[]): number {
+  const targets = rows.map((r) => r.targetToko).filter((t) => t > 0).sort((a, b) => a - b);
+  if (!targets.length) return 0;
+  const q = targets[Math.min(targets.length - 1, Math.floor(targets.length * 0.75))];
+  return Math.max(q, 1_000_000);
+}
+
+/** Target besar tapi realisasi bulan ini masih di bawah separuh target (termasuk 0). */
+export function kurangTransaksi(
+  r: DapRow,
+  monthIdx: number,
+  ambangTarget: number,
+  maksPcp = 50,
+): boolean {
+  if (r.targetToko <= 0 || r.targetToko < ambangTarget) return false;
+  if (isTutup(r)) return false;
+  return aktualBulan(r, monthIdx) < r.targetToko * (maksPcp / 100);
+}
+
+/** Toko target besar yang transaksinya belum jalan — urut target terbesar. */
+export function teratasKurangTransaksi(
+  rows: DapRow[],
+  monthIdx: number,
+  limit = 10,
+  ambangTarget = ambangTargetBesar(rows),
+): SorotanToko[] {
+  if (ambangTarget <= 0) return [];
+  return rows
+    .filter((r) => kurangTransaksi(r, monthIdx, ambangTarget))
+    .map((r) => sorotToko(r, monthIdx))
+    .sort((a, b) => b.target - a.target || a.pcp - b.pcp)
+    .slice(0, limit);
+}
+
+/** Toko dengan penurunan omset terbesar dibanding bulan lalu. */
+export function teratasTurun(rows: DapRow[], monthIdx: number, limit = 10): SorotanToko[] {
+  return rows
+    .filter((r) => isTurun(r, monthIdx))
+    .map((r) => sorotToko(r, monthIdx))
+    .sort((a, b) => a.selisih - b.selisih)
+    .slice(0, limit);
+}
+
+/** Ringkasan tren bulan terpilih untuk beranda & F.R.I.D.A.Y. */
+export function ringkasTren(rows: DapRow[], monthIdx: number) {
+  let turun = 0;
+  let naik = 0;
+  let turunNominal = 0;
+  let naikNominal = 0;
+  for (const r of rows) {
+    const d = selisihBulan(r, monthIdx);
+    if (d < 0) { turun += 1; turunNominal += -d; }
+    else if (d > 0 && aktualBulan(r, monthIdx - 1) > 0) { naik += 1; naikNominal += d; }
+  }
+  return { turun, naik, turunNominal, naikNominal };
+}

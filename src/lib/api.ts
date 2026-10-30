@@ -1,6 +1,6 @@
 import { parseCsv, parseNum } from "./csv";
 import type { DapPayload, DapRow, MonthlyPayload, MonthlyRow, WeeklyPayload, WeeklyRow } from "./types";
-import { MOCK_MONTHLY, MOCK_WEEKLY } from "./mock";
+import { MOCK_DAP, MOCK_MONTHLY, MOCK_WEEKLY } from "./mock";
 
 const MONTHLY_URL = process.env.NEXT_PUBLIC_SHEET_MONTHLY ?? "";
 const WEEKLY_URL = process.env.NEXT_PUBLIC_SHEET_WEEKLY ?? "";
@@ -147,5 +147,5 @@ export const fetchWeekly = async (): Promise<WeeklyPayload> => {
 };
 export const fetchDap = async (): Promise<DapPayload> => {
   const vals = await getCsv(DAP_URL);
-  return vals ? toDap(vals) : { updatedAt: "", rows: [] };
+  return vals ? toDap(vals) : MOCK_DAP;
 };

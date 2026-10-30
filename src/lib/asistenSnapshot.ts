@@ -7,7 +7,7 @@
  */
 import type { QueryClient } from "@tanstack/react-query";
 import type { AsistenResult } from "./asisten";
-import { ringkasSegmentasi } from "./dapSegment";
+import { ringkasSegmentasi, ringkasTren, teratasTurun } from "./dapSegment";
 import type { DapRow, MonthlyRow } from "./types";
 
 export interface ProdukCacheRow {
@@ -24,11 +24,29 @@ export interface SnapshotArea {
   pcp: number;
 }
 
+export interface SnapshotTokoTurun {
+  nama: string;
+  kabupaten: string;
+  sekarang: number;
+  sebelumnya: number;
+  selisih: number;
+}
+
 export interface AsistenSnapshot {
   periode: string;
   bulan: number;
   bulanan?: { target: number; aktual: number; pcp: number; area: SnapshotArea[] };
-  toko?: { total: number; tanpaTransaksi: number; bawahTarget: number; hilangNominal: number };
+  toko?: {
+    total: number;
+    tanpaTransaksi: number;
+    bawahTarget: number;
+    hilangNominal: number;
+    /** jumlah toko yang omsetnya turun / naik vs bulan lalu */
+    turun?: number;
+    naik?: number;
+    turunNominal?: number;
+    topTurun?: SnapshotTokoTurun[];
+  };
   produk?: {
     brand: { nama: string; penjualan: number }[];
     barang: { nama: string; penjualan: number }[];
@@ -97,11 +115,22 @@ export function buildSnapshot(qc: QueryClient, now = new Date()): AsistenSnapsho
   const drows = dap?.rows ?? [];
   if (drows.length > 0) {
     const ringkas = ringkasSegmentasi(drows, bulan);
+    const tren = ringkasTren(drows, bulan);
     snap.toko = {
       total: ringkas.total,
       tanpaTransaksi: ringkas.tanpa.toko,
       bawahTarget: ringkas.bawahToko,
       hilangNominal: ringkas.hilangNominal,
+      turun: tren.turun,
+      naik: tren.naik,
+      turunNominal: tren.turunNominal,
+      topTurun: teratasTurun(drows, bulan, 5).map((t) => ({
+        nama: t.toko,
+        kabupaten: t.kabupaten,
+        sekarang: t.aktual,
+        sebelumnya: t.sebelumnya,
+        selisih: t.selisih,
+      })),
     };
   }
 
@@ -132,6 +161,11 @@ function matchArea(tokens: string[], areas: string[]): string | null {
 
 const TRX_WORDS = ["tanpa", "tidak", "gak", "nggak", "belum", "pasif", "idle", "hilang", "kosong", "sepi", "berhenti"];
 const METRIK_WORDS = ["omset", "penjualan", "pcp", "pencapaian", "target", "aktual", "realisasi", "performa"];
+const TREN_TURUN_WORDS = [
+  "turun", "menurun", "penurunan", "turunnya", "anjlok", "merosot", "melorot",
+  "menyusut", "melemah", "lesu", "drop", "decline",
+];
+const TREN_NAIK_WORDS = ["naik", "kenaikan", "meningkat", "meningkatnya", "tumbuh", "growth"];
 
 /** Jawab pertanyaan angka dari data yang sudah termuat (tanpa model). */
 export function answerFromSnapshot(raw: string, snap: AsistenSnapshot): AsistenResult | null {
@@ -148,6 +182,31 @@ export function answerFromSnapshot(raw: string, snap: AsistenSnapshot): AsistenR
   const asksPcp = has(["pcp", "pencapaian", "performa", "target", "aktual", "realisasi", "capai", "capaian", "omset", "penjualan", "gauge", "%"]);
   const asksToko = has(["toko", "outlet", "transaksi", "order", "churn", "pasif"]);
   const asksProduk = has(["produk", "brand", "merek", "barang", "sku", "terlaris"]);
+
+  // Pertanyaan tren ("berapa toko yang turun bulan ini?") dijawab dari ringkasan tren.
+  if (snap.toko && (has(TREN_TURUN_WORDS) || has(TREN_NAIK_WORDS))) {
+    const s = snap.toko;
+    const turun = has(TREN_TURUN_WORDS);
+    const jumlah = (turun ? s.turun : s.naik) ?? 0;
+    const nominal = turun ? (s.turunNominal ?? 0) : 0;
+    const top = turun ? (s.topTurun ?? []).slice(0, 3) : [];
+    const detail = top.length
+      ? ` Terparah: ${top.map((t) => `${t.nama} (turun ${rupiah(Math.abs(t.selisih))})`).join(", ")}.`
+      : "";
+    return {
+      reply: `Ada ${angka(jumlah)} toko ${turun ? "turun" : "naik"} di ${snap.periode}${nominal > 0 ? `, total penurunan ${rupiah(nominal)}` : ""}.${detail}`,
+      action: {
+        page: "dap",
+        params: {
+          bulan: String(snap.bulan),
+          tren: turun ? "TURUN" : "NAIK",
+          urut: "selisih",
+          arah: turun ? "asc" : "desc",
+        },
+      },
+      source: "rule",
+    };
+  }
 
   // Pertanyaan tentang toko (bukan omset/pencapaian) dijawab dengan angka segmentasi.
   if (asksToko && !has(METRIK_WORDS) && snap.toko) {

@@ -26,6 +26,7 @@ const KEY_VOICE_OUT = "friday-voice-reply";
 const KEY_HANDS_FREE = "friday-hands-free";
 
 const SARAN = [
+  "Buka penjualan yang turun bulan ini",
   "Buka DAP toko tanpa transaksi",
   "Toko omset tertinggi kabupaten Sleman",
   "Berapa pencapaian bulan ini?",
@@ -436,7 +437,8 @@ export default function Asisten() {
                   dan semua sistem siap. Data PCP sudah terhubung.
                   <br />
                   Mau saya bukakan halaman atau data yang mana? Contohnya
-                  <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang bulan ini”</span>.
+                  <span className="text-cyan-300"> “buka penjualan yang turun bulan ini”</span> atau
+                  <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang”</span>.
                   {canListen && (
                     <>
                       <br />
