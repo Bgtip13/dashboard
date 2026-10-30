@@ -14,7 +14,7 @@ import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import SorotanTokoList from "@/features/beranda/SorotanToko";
 
-const NAMA = "Bagus Triawan";
+const NAMA = "Bos";
 
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",

@@ -372,12 +372,11 @@ export default function Asisten() {
         onClick={() => { if (open) tutupPanel(); else setOpen(true); }}
         aria-expanded={open}
         aria-label={open ? "Tutup F.R.I.D.A.Y" : "Buka F.R.I.D.A.Y"}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 py-2 pl-2 pr-5 text-base font-semibold text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-5 right-5 z-50 flex items-center justify-center gap-1.5 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 p-2 text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
       >
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/15 to-indigo-500/20 ring-1 ring-cyan-300/30">
           <FridayLogo size={28} active={busy || open || speaking} />
         </span>
-        <span className="hidden tracking-[0.12em] sm:inline">F.R.I.D.A.Y</span>
         <span
           aria-hidden
           className={`h-1.5 w-1.5 rounded-full ${busy || listening ? "animate-pulse bg-amber-300" : "bg-emerald-400"}`}
