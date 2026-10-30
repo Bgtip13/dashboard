@@ -108,8 +108,50 @@ export const HELP_REPLY = [
   "Sebutkan halaman (DAP, Produk, Bulanan, Mingguan), wilayah, brand, atau bulan yang diinginkan. Di browser yang mendukung, tekan ikon mikrofon untuk memberi perintah lewat suara.",
 ].join("\n");
 
-const norm = (s: string) =>
+/**
+ * Kamus bahasa santai/gaul → kata baku. Dibaca per kata, jadi kalimat campuran
+ * ("liat tokonya yang jeblok gak sih") tetap bisa dipahami tanpa mengubah tabel
+ * frase baku di bawah.
+ */
+const SANTAI: Record<string, string> = {
+  // kata tanya & sapaan
+  gmn: "gimana", gmna: "gimana", gmana: "gimana", gimane: "gimana", piye: "gimana",
+  brp: "berapa", brapa: "berapa",
+  woy: "halo", woi: "halo", p: "halo", assalamualaikum: "halo", assalam: "halo", permisi: "halo",
+  // kata kerja
+  liat: "lihat", liatin: "lihat", lihin: "lihat", lht: "lihat", tengok: "lihat", intip: "lihat",
+  tampilin: "tampilkan", tunjukin: "tunjukkan", bukain: "buka",
+  kasih: "tampilkan", kasihin: "tampilkan", munculin: "tampilkan", open: "buka", show: "tampilkan",
+  check: "cek",
+  // negasi & kata sambung santai
+  gak: "tidak", ga: "tidak", gk: "tidak", nggak: "tidak", enggak: "tidak", kagak: "tidak",
+  tdk: "tidak", yg: "yang", dgn: "dengan", krn: "karena", udh: "sudah", udah: "sudah",
+  // benda
+  duit: "omset", duitnya: "omset", cuan: "omset", cuannya: "omset", pemasukan: "omset",
+  revenue: "omset", turnover: "omset", omsetnya: "omset", omzetnya: "omzet",
+  jualannya: "penjualan", penjualannya: "penjualan", salesnya: "penjualan",
+  tokonya: "toko", toko2: "toko", outlet: "toko", outletya: "toko", tokoe: "toko",
+  barangnya: "barang", barang2: "barang", brg: "barang",
+  produknya: "produk", mereknya: "brand", brandnya: "brand",
+  areanya: "area", daerahnya: "daerah", wilayahnya: "wilayah",
+  // tren
+  jeblok: "anjlok", ambyar: "anjlok", ambruk: "anjlok", kolaps: "anjlok", hancur: "anjlok",
+  terjun: "anjlok", plunging: "anjlok",
+  nambah: "naik", moncer: "naik", melesat: "naik", meroket: "naik",
+  // target
+  nyampe: "capai", nyampek: "capai", sampe: "capai", sampek: "capai", kekejar: "capai",
+};
+
+const rapikan = (s: string) =>
   s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+
+/** Normalisasi teks + terjemahan kata santai, dipakai seluruh pencocokan di file ini. */
+const norm = (s: string) =>
+  rapikan(s)
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => SANTAI[w] ?? w)
+    .join(" ");
 
 const tokens = (s: string) => norm(s).split(" ").filter(Boolean);
 
@@ -133,7 +175,10 @@ export function isStopCommand(raw: string): boolean {
 
 const GREETING_TOKENS = new Set([
   "halo", "hallo", "hai", "hi", "hey", "helo", "pagi", "siang", "sore", "malam",
-  "selamat", "friday", "bos", "ya", "dong", "semua", "bro",
+  "selamat", "friday", "bos", "boss", "ya", "dong", "semua", "bro", "bre", "sis",
+  "min", "kak", "gan", "mas", "mbak", "permisi",
+  // "woy min mau tanya dong" tetap dianggap sapaan
+  "tanya", "nanya", "mau", "mo", "minta", "boleh", "izin", "nih", "sih",
 ]);
 
 const GREETING_WORDS = ["halo", "hallo", "hai", "hi", "hey", "helo", "pagi", "siang", "sore", "malam", "selamat"];
@@ -195,6 +240,20 @@ function conversationReply(n: string, now: Date): AsistenResult | null {
     };
   }
 
+  // basa-basi santai: "lagi apa", "gimana kabar", "sibuk ga"
+  if (t.length <= 6 && /lagi apa|lagi ngapain|ngapain|sibuk|kabar|baik baik|baik2|sehat/.test(n)) {
+    return {
+      reply: `Siap siaga terus, Bos. Mau saya bukakan data yang mana? Sebut saja halaman atau tokonya.`,
+      action: null,
+      source: "rule",
+    };
+  }
+
+  // akronim persetujuan singkat: "sip", "oke", "mantap"
+  if (t.length <= 3 && t.every((w) => ["sip", "siap", "oke", "ok", "okey", "mantap", "mantul", "nice", "keren", "bagus", "woke", "santai"].includes(w))) {
+    return { reply: "Siap, Bos. Panggil saja kalau butuh data lagi.", action: null, source: "rule" };
+  }
+
   return null;
 }
 
@@ -248,7 +307,10 @@ const STOPWORDS = new Set(
    apakah sedang saat sekarang minta bantu bantuan buatkan buat berdasarkan mana saja seluruh semuanya periode
    pencapaian ringkasan penjualannya datanya tokonya yang mana daerah kawasan sekitar bagian dalam tepatnya yaitu
    adalah terhadap cuma hanya omset aktual pcp kontribusi kontrib avg rata pasif status ytd urutan sortir sort
-   ranking peringkat tampilin carikan bantu bantuannya mohon silakan dicek cek cekin qty kuantitas kategori`
+   ranking peringkat tampilin carikan bantu bantuannya mohon silakan dicek cek cekin qty kuantitas kategori
+   sih deh nih tuh kok kan lah kah min kak gan mas mbak bre sis boss banget bgt gitu gt yah ah eh mah
+   donk dunk yuk ayo mari segera doang aja nih
+   gimana bagaimana berapa berapakah apa apakah mana manakah kenapa mengapa kok total jumlah sekarang`
     .split(/\s+/)
     .filter(Boolean)
 );
@@ -300,6 +362,12 @@ const TRX_PHRASES: [string, string][] = [
   ["kurang target", "BAWAH"],
   ["tidak capai target", "BAWAH"],
   ["tidak mencapai target", "BAWAH"],
+  ["gagal capai target", "BAWAH"],
+  ["tidak laku", "TANPA"],
+  ["kurang laku", "TANPA"],
+  ["sepi order", "TANPA"],
+  // "kejar/nyampe target" sudah dinormalkan jadi "capai target"
+  ["capai target", "BAWAH"],
   ["ada transaksi", "AKTIF"],
   ["ada order", "AKTIF"],
   ["has transaction", "AKTIF"],
@@ -334,6 +402,8 @@ const TREN_PHRASES: [string, "TURUN" | "NAIK"][] = [
   ["melemah", "TURUN"], ["lesu", "TURUN"], ["drop", "TURUN"], ["decline", "TURUN"],
   ["naik", "NAIK"], ["kenaikan", "NAIK"], ["meningkat", "NAIK"], ["meningkatnya", "NAIK"],
   ["tumbuh", "NAIK"], ["growth", "NAIK"],
+  ["turun drastis", "TURUN"], ["turun jauh", "TURUN"],
+  ["naik terus", "NAIK"], ["naik pesat", "NAIK"],
 ];
 
 const OMSET_WORDS = ["omset", "omzet", "penjualan", "jualan", "sales"];
@@ -346,7 +416,7 @@ const AREA_ALIAS: Record<string, string> = {
 };
 
 const ASC_WORDS = ["terendah", "tersedikit", "terkecil", "sedikit", "rendah", "bottom", "asc", "under"];
-const DESC_WORDS = ["tertinggi", "terbesar", "terbanyak", "tinggi", "besar", "banyak", "top", "desc", "teratas"];
+const DESC_WORDS = ["tertinggi", "terbesar", "terbanyak", "tinggi", "besar", "banyak", "top", "desc", "teratas", "laris"];
 const SORT_VERBS = ["urutkan", "urutin", "urut", "sortir", "sort", "ranking", "peringkat", "top", "paling"];
 
 const DAP_METRICS: [string, string][] = [
@@ -425,7 +495,7 @@ function matchProdukUrut(t: string[]): string | null {
   if (t.includes("terendah") || t.includes("tersedikit") || t.includes("terkecil") || t.includes("asc")) {
     return qty ? "qty-asc" : "pj-asc";
   }
-  if (t.includes("tertinggi") || t.includes("terbanyak") || t.includes("terbesar") || t.includes("desc") || t.includes("top")) {
+  if (t.includes("tertinggi") || t.includes("terbanyak") || t.includes("terbesar") || t.includes("desc") || t.includes("top") || t.includes("laris")) {
     return qty ? "qty-desc" : "pj-desc";
   }
   return null;

@@ -29,6 +29,12 @@ const toNum = (s: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/**
+ * Rapikan teks dari sheet: spasi ganda / spasi tak terlihat (mis. "WETFOOD  CAN")
+ * disatukan supaya kategori, brand, dan wilayah tidak muncul dobel di filter.
+ */
+const teks = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
+
 async function fetchProduk(): Promise<ProdukPayload> {
   const sep = PRODUK_URL.includes("?") ? "&" : "?";
   const res = await fetch(`${PRODUK_URL}${sep}_=${Date.now()}`);
@@ -37,13 +43,13 @@ async function fetchProduk(): Promise<ProdukPayload> {
   const rows: ProdukRow[] = vals.slice(1)
     .filter((r) => r.join("").trim() !== "")
     .map((r) => ({
-      area: String(r[0] ?? "").trim().toUpperCase(),
-      kabupaten: String(r[1] ?? "").trim(),
-      kecamatan: String(r[2] ?? "").trim(),
-      kategori: String(r[3] ?? "").trim(),
-      brand: String(r[4] ?? "").trim(),
-      barang: String(r[5] ?? "").trim(),
-      pelanggan: String(r[6] ?? "").trim(),
+      area: teks(r[0]).toUpperCase(),
+      kabupaten: teks(r[1]),
+      kecamatan: teks(r[2]),
+      kategori: teks(r[3]),
+      brand: teks(r[4]),
+      barang: teks(r[5]),
+      pelanggan: teks(r[6]),
       qty: toNum(r[7]),
       penjualan: toNum(r[8]),
     }));

@@ -157,6 +157,9 @@ Halaman dan parameter yang valid:
 - produk: area, kategori, brand, cari, urut (pj-desc/pj-asc/qty-desc/qty-asc)
 
 Aturan:
+- Pengguna sering menulis santai/gaul: "liat", "gmn", "brp", "gak", "tokonya", "cuan", "jeblok", "nyampe target".
+  Pahami maksudnya seperti bahasa baku, jangan menolak hanya karena bahasanya tidak formal.
+- Balas dengan bahasa Indonesia yang luwes dan santai tapi sopan, singkat, tetap memanggil "Bos".
 - Isi parameter hanya yang benar-benar disebut pengguna.
 - Nilai area/brand/kabupaten/kecamatan/kategori harus disalin persis dari "opsi" bila ada.
 - Nama toko atau wilayah yang tidak ada di opsi taruh di q (dap) atau cari (produk).
@@ -165,7 +168,8 @@ Aturan:
 - "penjualan naik"/"meningkat" -> dap dengan tren NAIK, urut selisih, arah desc.
 - Permintaan peringkat ("tertinggi", "terendah", "top") -> isi urut + arah, jangan taruh kata itu di q/cari.
 - Sapaan, basa-basi, dan pertanyaan angka cukup dijawab di "reply" dengan page null.
-- Kalau perintah tidak jelas atau tidak berhubungan dengan data dashboard, balas PERSIS {"reply":"Saya tidak paham, Bos.","page":null,"params":{}}. Jangan menebak, jangan mengarang cerita, jangan menawarkan hal lain.`;
+- Kalau setelah ditafsirkan secara santai perintahnya tetap tidak jelas atau tidak berhubungan dengan data dashboard,
+  balas PERSIS {"reply":"Saya tidak paham, Bos.","page":null,"params":{}}. Jangan menebak, jangan mengarang cerita.`;
 
 /** Panggil model (OpenAI-compatible). Null kalau tidak dikonfigurasi/gagal. */
 async function viaModel(

@@ -26,6 +26,7 @@ const KEY_VOICE_OUT = "friday-voice-reply";
 const KEY_HANDS_FREE = "friday-hands-free";
 
 const SARAN = [
+  "Liat tokonya yang jeblok bulan ini",
   "Buka penjualan yang turun bulan ini",
   "Buka DAP toko tanpa transaksi",
   "Toko omset tertinggi kabupaten Sleman",
