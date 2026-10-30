@@ -10,6 +10,7 @@ const TABS = [
   { href: "/mingguan", label: "Mingguan" },
   { href: "/dap", label: "DAP" },
   { href: "/produk", label: "Produk" }, // ← TAMBAHAN BARU
+  { href: "/catatan", label: "Catatan" },
 ];
 
 export default function Navbar() {

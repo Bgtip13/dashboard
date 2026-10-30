@@ -44,6 +44,23 @@ html.dark {
   --logo-bg: #061826;
 }
 
+/* ===== Catatan: gaya isi editor (mini Word) ===== */
+.catatan-isi > *:first-child { margin-top: 0; }
+.catatan-isi h2 { font-size: 1.5rem; font-weight: 700; margin: 1rem 0 0.45rem; letter-spacing: -0.02em; }
+.catatan-isi h3 { font-size: 1.18rem; font-weight: 600; margin: 0.9rem 0 0.35rem; }
+.catatan-isi p { margin: 0.35rem 0; }
+.catatan-isi ul { list-style: disc outside; padding-left: 1.4rem; margin: 0.35rem 0; }
+.catatan-isi ol { list-style: decimal outside; padding-left: 1.5rem; margin: 0.35rem 0; }
+.catatan-isi li { margin: 0.15rem 0; }
+.catatan-isi li > ul, .catatan-isi li > ol { margin: 0.1rem 0; }
+.catatan-isi blockquote {
+  border-left: 3px solid rgba(99, 102, 241, 0.55);
+  padding-left: 0.85rem; margin: 0.6rem 0; font-style: italic; opacity: 0.88;
+}
+.catatan-isi a { color: #6366f1; text-decoration: underline; }
+.catatan-isi b, .catatan-isi strong { font-weight: 700; }
+.catatan-isi:focus-visible { outline: none; }
+
 /* ===== Tabel lebar: selalu bisa digeser, tidak menembus kartu ===== */
 .tbl-scroll {
   overflow-x: auto;
