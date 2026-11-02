@@ -13,6 +13,7 @@ import {
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import SorotanTokoList from "@/features/beranda/SorotanToko";
+import { FilterSelect } from "@/components/FilterBar";
 
 const NAMA = "Bos";
 
@@ -58,8 +59,11 @@ export default function BerandaPage() {
 
   // Sorotan DAP di beranda — memakai data toko yang sama dengan halaman DAP
   const dapRows = useMemo(() => dap?.rows ?? [], [dap]);
-  const bulan = now ? now.getMonth() : new Date().getMonth();
-  const dapTren = useMemo(() => ringkasTren(dapRows, bulan), [dapRows, bulan]);
+  const bulanIni = now ? now.getMonth() : new Date().getMonth();
+  // Sorotan DAP bisa dilihat per bulan pilihan sendiri (null = ikut bulan berjalan)
+  const [bulanPilih, setBulanPilih] = useState<number | null>(null);
+  const bulan = bulanPilih ?? bulanIni;
+  const dapTren = useMemo(() => ringkasTren(dapRows, bulanIni), [dapRows, bulanIni]);
   const sorotan = useMemo<{ bawah: SorotanToko[]; kurang: SorotanToko[]; ambang: number }>(() => {
     const ambang = ambangTargetBesar(dapRows);
     return {
@@ -164,8 +168,26 @@ export default function BerandaPage() {
 
       {/* Sorotan DAP: siapa yang perlu dikejar bulan ini */}
       <div>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-xl font-bold">Sorotan DAP · {MONTHS[bulan]}</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-bold">Sorotan DAP</h2>
+            <FilterSelect
+              value={bulan}
+              onChange={(v) => setBulanPilih(Number(v))}
+              title="Pilih bulan sorotan"
+            >
+              {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
+            </FilterSelect>
+            {bulanPilih !== null && bulanPilih !== bulanIni && (
+              <button
+                type="button"
+                onClick={() => setBulanPilih(null)}
+                className="text-sm font-medium text-indigo-300 transition-colors hover:text-indigo-200"
+              >
+                Bulan ini
+              </button>
+            )}
+          </div>
           <p className="text-sm text-slate-400">
             Top 10 di bawah target kurang <span className="font-semibold text-amber-300">{rpShort(totalKurang)}</span>
             {sorotan.ambang > 0 && <> · target besar ≥ {rpShort(sorotan.ambang)}</>}
@@ -177,16 +199,16 @@ export default function BerandaPage() {
             hint={`Sudah transaksi ${MONTHS[bulan]} tapi belum mencapai target toko — urut kekurangan terbesar`}
             items={sorotan.bawah}
             mode="bawah"
-            href="/dap?trx=BAWAH&urut=pcp&arah=asc"
-            empty={dapLoading ? "Memuat data DAP…" : "Belum ada toko yang di bawah target bulan ini."}
+            href={`/dap?trx=BAWAH&urut=pcp&arah=asc&bulan=${bulan}`}
+            empty={dapLoading ? "Memuat data DAP…" : `Belum ada toko yang di bawah target ${MONTHS[bulan]}.`}
           />
           <SorotanTokoList
             title="10 Toko Target Besar, Transaksi Kurang"
             hint={`Target besar tapi realisasi ${MONTHS[bulan]} belum separuh target — urut target terbesar`}
             items={sorotan.kurang}
             mode="kurang"
-            href="/dap?urut=targetToko&arah=desc"
-            empty={dapLoading ? "Memuat data DAP…" : "Tidak ada toko target besar yang tertinggal."}
+            href={`/dap?urut=targetToko&arah=desc&bulan=${bulan}`}
+            empty={dapLoading ? "Memuat data DAP…" : `Tidak ada toko target besar yang tertinggal di ${MONTHS[bulan]}.`}
           />
         </div>
       </div>
