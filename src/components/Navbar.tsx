@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/app/providers";
 import Icn from "./Icn";
@@ -9,13 +11,53 @@ const TABS = [
   { href: "/bulanan", label: "Bulanan" },
   { href: "/mingguan", label: "Mingguan" },
   { href: "/dap", label: "DAP" },
-  { href: "/produk", label: "Produk" }, // ← TAMBAHAN BARU
+  { href: "/produk", label: "Produk" },
   { href: "/catatan", label: "Catatan" },
 ];
 
+type Me = { user: { id: string; nama: string; role: "admin" | "user" } };
+
+class AuthError extends Error {
+  status: number;
+  constructor(status: number) {
+    super("auth");
+    this.status = status;
+  }
+}
+
 export default function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const qc = useQueryClient();
   const { isDark, toggle } = useTheme();
+
+  // Dicek berkala (interval bawaan 30 dtk): user yang dihapus / password-nya diganti otomatis keluar
+  const { data: me, error } = useQuery({
+    queryKey: ["me"],
+    retry: false,
+    queryFn: async (): Promise<Me> => {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      if (!res.ok) throw new AuthError(res.status);
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (error instanceof AuthError && error.status === 401) {
+      qc.clear();
+      router.replace("/login");
+    }
+  }, [error, qc, router]);
+
+  async function keluar() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    qc.clear();
+    router.replace("/login");
+    router.refresh();
+  }
+
+  const tabs = me?.user.role === "admin" ? [...TABS, { href: "/pengguna", label: "Pengguna" }] : TABS;
+
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-[var(--nav-bg)] backdrop-blur">
       <div className="mx-auto flex max-w-[88rem] items-center gap-1 overflow-x-auto px-4 py-3.5 sm:px-8">
@@ -24,7 +66,7 @@ export default function Navbar() {
           className="mr-6 flex shrink-0 items-center gap-2.5 text-xl font-bold tracking-tight transition-opacity hover:opacity-75">
           <Icn e="📊" className="h-6 w-6 text-indigo-300" /> PCP Dashboard
         </Link>
-        {TABS.map((t) => {
+        {tabs.map((t) => {
           const active = pathname === t.href;
           return (
             <Link key={t.href} href={t.href} className="relative shrink-0 rounded-full px-5 py-2 text-base">
@@ -36,10 +78,21 @@ export default function Navbar() {
             </Link>
           );
         })}
-        <button onClick={toggle} title="Ganti tema (tersimpan otomatis)" aria-pressed={!isDark}
-          className="ml-auto flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-base transition-transform hover:scale-105 active:scale-95">
-          <Icn e={isDark ? "☀️" : "🌙"} className="h-5 w-5" /> {isDark ? "Light" : "Dark"}
-        </button>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {me && (
+            <span className="hidden text-sm text-slate-400 sm:inline" title={`ID: ${me.user.id}`}>
+              {me.user.nama}
+            </span>
+          )}
+          <button onClick={toggle} title="Ganti tema (tersimpan otomatis)" aria-pressed={!isDark}
+            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-base transition-transform hover:scale-105 active:scale-95">
+            <Icn e={isDark ? "☀️" : "🌙"} className="h-5 w-5" /> {isDark ? "Light" : "Dark"}
+          </button>
+          <button onClick={keluar} title="Keluar"
+            className="rounded-full border border-white/10 px-4 py-2 text-base text-slate-300 transition-colors hover:bg-white/5 hover:text-rose-300">
+            Keluar
+          </button>
+        </div>
       </div>
     </nav>
   );
