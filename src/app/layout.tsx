@@ -1,6 +1,7 @@
 import Providers from "./providers";
 import Navbar from "@/components/Navbar";
 import Asisten from "@/components/Asisten";
+import ShellGate from "@/components/ShellGate";
 import "./globals.css";
 
 export const metadata = { title: "PCP Dashboard" };
@@ -14,9 +15,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body className="min-h-screen antialiased">
         <Providers>
-          <Navbar />
+          <ShellGate><Navbar /></ShellGate>
           <main className="mx-auto max-w-[88rem] px-4 pb-16 sm:px-8">{children}</main>
-          <Asisten />
+          <ShellGate><Asisten /></ShellGate>
         </Providers>
       </body>
     </html>
