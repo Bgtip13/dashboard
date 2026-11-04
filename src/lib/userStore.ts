@@ -1,6 +1,5 @@
-/** Penyimpanan user di file JSON (khusus server). Password di-hash dengan scrypt. */
-import { promises as fs } from "node:fs";
-import path from "node:path";
+/** Penyimpanan user di Supabase (khusus server). Password di-hash dengan scrypt. */
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
 
 export type Role = "admin" | "user";
@@ -23,9 +22,23 @@ export class UserError extends Error {
   }
 }
 
-const FILE = path.join(process.cwd(), process.env.USERS_FILE ?? ".data/users.json");
 export const MAIN_ID = (process.env.ADMIN_ID ?? "bagus").trim().toLowerCase();
+const TABLE = "app_users";
 
+/* ---------- koneksi ---------- */
+let client: SupabaseClient | null = null;
+function db(): SupabaseClient {
+  if (client) return client;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error("SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY belum diisi.");
+  }
+  client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return client;
+}
+
+/* ---------- hash password ---------- */
 const scrypt = (pw: string, salt: Buffer): Promise<Buffer> =>
   new Promise((resolve, reject) =>
     scryptCb(pw, salt, 64, (err, key) => (err ? reject(err) : resolve(key))));
@@ -47,48 +60,53 @@ async function verifyPassword(pw: string, stored: string): Promise<boolean> {
 // supaya waktu respons tetap sama walau ID tidak ada
 let dummyHash: Promise<string> | null = null;
 
-/* ---------- penyimpanan file (satu antrean agar tidak saling menimpa) ---------- */
-let chain: Promise<unknown> = Promise.resolve();
-function withLock<T>(fn: () => Promise<T>): Promise<T> {
-  const run = chain.then(fn);
-  chain = run.catch(() => undefined);
-  return run;
-}
+/* ---------- baris <-> objek ---------- */
+type Row = { id: string; nama: string; role: string; hash: string; ver: number; dibuat: number | string };
 
-async function writeAll(users: User[]) {
-  await fs.mkdir(path.dirname(FILE), { recursive: true });
-  const tmp = `${FILE}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(users, null, 2), "utf8");
-  await fs.rename(tmp, FILE);
-}
-
-async function readAll(): Promise<User[]> {
-  try {
-    const data: unknown = JSON.parse(await fs.readFile(FILE, "utf8"));
-    if (Array.isArray(data)) return data as User[];
-  } catch (e) {
-    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
-  }
-
-  // Pertama kali: buat akun utama dari env
-  const adminPw = process.env.ADMIN_PASSWORD;
-  if (!adminPw) {
-    throw new Error("ADMIN_PASSWORD belum diisi di .env.local untuk membuat akun utama pertama.");
-  }
-  const admin: User = {
-    id: MAIN_ID,
-    nama: "Bagus",
-    role: "admin",
-    hash: await hashPassword(adminPw),
-    ver: 1,
-    dibuat: Date.now(),
-  };
-  await writeAll([admin]);
-  return [admin];
-}
+const toUser = (r: Row): User => ({
+  id: r.id,
+  nama: r.nama,
+  role: r.role === "admin" ? "admin" : "user",
+  hash: r.hash,
+  ver: Number(r.ver),
+  dibuat: Number(r.dibuat),
+});
 
 function toPublic(u: User): PublicUser {
   return { id: u.id, nama: u.nama, role: u.role, ver: u.ver, dibuat: u.dibuat };
+}
+
+function fail(message: string, error: { message: string }): never {
+  throw new Error(`${message}: ${error.message}`);
+}
+
+/* ---------- akun utama dibuat otomatis sekali ---------- */
+let seeded: Promise<void> | null = null;
+function ensureAdmin(): Promise<void> {
+  seeded ??= (async () => {
+    const { data, error } = await db().from(TABLE).select("id").eq("id", MAIN_ID).maybeSingle();
+    if (error) fail("Gagal membaca tabel app_users", error);
+    if (data) return;
+
+    const adminPw = process.env.ADMIN_PASSWORD;
+    if (!adminPw) {
+      throw new Error("ADMIN_PASSWORD belum diisi untuk membuat akun utama pertama.");
+    }
+    const { error: insErr } = await db().from(TABLE).insert({
+      id: MAIN_ID,
+      nama: "Bagus",
+      role: "admin",
+      hash: await hashPassword(adminPw),
+      ver: 1,
+      dibuat: Date.now(),
+    });
+    // 23505 = sudah ada (dibuat bersamaan oleh instance lain), aman diabaikan
+    if (insErr && (insErr as { code?: string }).code !== "23505") fail("Gagal membuat akun utama", insErr);
+  })().catch((e) => {
+    seeded = null; // coba lagi di permintaan berikutnya
+    throw e;
+  });
+  return seeded;
 }
 
 /* ---------- validasi ---------- */
@@ -108,63 +126,81 @@ export function cekPassword(pw: string): string {
 const cekNama = (n: string, fallback: string) => n.trim().slice(0, 40) || fallback;
 
 /* ---------- operasi ---------- */
-export const listUsers = () =>
-  withLock(async () => (await readAll()).map(toPublic).sort((a, b) => a.dibuat - b.dibuat));
+async function findRow(id: string): Promise<User | null> {
+  await ensureAdmin();
+  const { data, error } = await db().from(TABLE).select("*").eq("id", id.trim().toLowerCase()).maybeSingle();
+  if (error) fail("Gagal membaca user", error);
+  return data ? toUser(data as Row) : null;
+}
 
-export const getUser = (id: string) =>
-  withLock(async () => (await readAll()).find((u) => u.id === id.toLowerCase()) ?? null);
+export async function listUsers(): Promise<PublicUser[]> {
+  await ensureAdmin();
+  const { data, error } = await db().from(TABLE).select("*").order("dibuat", { ascending: true });
+  if (error) fail("Gagal membaca daftar user", error);
+  return ((data ?? []) as Row[]).map((r) => toPublic(toUser(r)));
+}
 
-export const authenticate = (id: string, password: string) =>
-  withLock(async () => {
-    const user = (await readAll()).find((u) => u.id === id.trim().toLowerCase());
-    if (!user) {
-      dummyHash ??= hashPassword("dummy-password");
-      await verifyPassword(password, await dummyHash);
-      return null;
-    }
-    return (await verifyPassword(password, user.hash)) ? toPublic(user) : null;
-  });
+export const getUser = (id: string) => findRow(id);
 
-export const createUser = (input: { id: string; nama: string; password: string }) =>
-  withLock(async () => {
-    const id = cekId(input.id);
-    const password = cekPassword(input.password);
-    const users = await readAll();
-    if (users.some((u) => u.id === id)) throw new UserError("ID sudah dipakai.", 409);
-    const baru: User = {
-      id,
-      nama: cekNama(input.nama, id),
-      role: "user",
-      hash: await hashPassword(password),
-      ver: 1,
-      dibuat: Date.now(),
-    };
-    await writeAll([...users, baru]);
-    return toPublic(baru);
-  });
+export async function authenticate(id: string, password: string): Promise<PublicUser | null> {
+  const user = await findRow(id);
+  if (!user) {
+    dummyHash ??= hashPassword("dummy-password");
+    await verifyPassword(password, await dummyHash);
+    return null;
+  }
+  return (await verifyPassword(password, user.hash)) ? toPublic(user) : null;
+}
 
-export const updateUser = (id: string, patch: { nama?: string; password?: string }) =>
-  withLock(async () => {
-    const users = await readAll();
-    const i = users.findIndex((u) => u.id === id.toLowerCase());
-    if (i === -1) throw new UserError("User tidak ditemukan.", 404);
-    const cur = users[i];
-    const next: User = { ...cur };
-    if (typeof patch.nama === "string") next.nama = cekNama(patch.nama, cur.id);
-    if (patch.password) {
-      next.hash = await hashPassword(cekPassword(patch.password));
-      next.ver = cur.ver + 1; // sesi lama user ini otomatis tidak berlaku
-    }
-    users[i] = next;
-    await writeAll(users);
-    return toPublic(next);
-  });
+export async function createUser(input: { id: string; nama: string; password: string }): Promise<PublicUser> {
+  const id = cekId(input.id);
+  const password = cekPassword(input.password);
+  await ensureAdmin();
 
-export const removeUser = (id: string) =>
-  withLock(async () => {
-    const target = id.toLowerCase();
-    if (target === MAIN_ID) throw new UserError("Akun utama tidak bisa dihapus.", 403);
-    const users = await readAll();
-    if (!users.some((u) => u.id === target)) throw new UserError("User tidak ditemukan.", 404);
-    await writeAll(users.filter((u) => u.id !== target));
-  });
+  const baru: User = {
+    id,
+    nama: cekNama(input.nama, id),
+    role: "user",
+    hash: await hashPassword(password),
+    ver: 1,
+    dibuat: Date.now(),
+  };
+  const { error } = await db().from(TABLE).insert(baru);
+  if (error) {
+    if ((error as { code?: string }).code === "23505") throw new UserError("ID sudah dipakai.", 409);
+    fail("Gagal menambah user", error);
+  }
+  return toPublic(baru);
+}
+
+export async function updateUser(
+  id: string,
+  patch: { nama?: string; password?: string },
+): Promise<PublicUser> {
+  const cur = await findRow(id);
+  if (!cur) throw new UserError("User tidak ditemukan.", 404);
+
+  const next: User = { ...cur };
+  if (typeof patch.nama === "string") next.nama = cekNama(patch.nama, cur.id);
+  if (patch.password) {
+    next.hash = await hashPassword(cekPassword(patch.password));
+    next.ver = cur.ver + 1; // sesi lama user ini otomatis tidak berlaku
+  }
+
+  const { error } = await db()
+    .from(TABLE)
+    .update({ nama: next.nama, hash: next.hash, ver: next.ver })
+    .eq("id", cur.id);
+  if (error) fail("Gagal memperbarui user", error);
+  return toPublic(next);
+}
+
+export async function removeUser(id: string): Promise<void> {
+  const target = id.trim().toLowerCase();
+  if (target === MAIN_ID) throw new UserError("Akun utama tidak bisa dihapus.", 403);
+  const cur = await findRow(target);
+  if (!cur) throw new UserError("User tidak ditemukan.", 404);
+
+  const { error } = await db().from(TABLE).delete().eq("id", target);
+  if (error) fail("Gagal menghapus user", error);
+}
