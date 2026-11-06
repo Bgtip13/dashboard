@@ -4,11 +4,12 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { rp } from "@/lib/utils";
-import { SEMUA_BULAN, fetchProdukSemuaBulan } from "@/lib/produk";
+import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
 import ProdukChart, { type ProdukChartConfig } from "@/components/ProdukChart";
+import ProdukTrenChart, { type ProdukTrenConfig } from "@/components/ProdukTrenChart";
 
 const PAGE_SIZE = 25;
 const CHART_TOP = 10; // ← jumlah batang grafik
@@ -108,6 +109,7 @@ function ProdukPageContent() {
     return (["pj-desc", "pj-asc", "qty-desc", "qty-asc"] as const).includes(raw as Urut) ? (raw as Urut) : "pj-desc";
   });
   const [page, setPage] = useState(0);
+  const [trenCari, setTrenCari] = useState(""); // nama barang / brand untuk grafik tren
 
   const rows = data?.rows ?? [];
   const areas = useMemo(() => uniqSorted(rows.map((r) => r.area)), [rows]);
@@ -169,6 +171,44 @@ function ProdukPageContent() {
     // dibalik supaya peringkat 1 tampil paling atas (ECharts menggambar category dari bawah)
     return { items: [...top].reverse(), metric };
   }, [filtered, urut]);
+
+  // Tren per bulan (Jan–Des): memakai SEMUA tab bulan, mengikuti filter area/kategori/brand
+  // dan metric dari urutan (qty / penjualan). Pilihan bulan & kotak cari tabel tidak berpengaruh.
+  const trenData = useMemo(() => {
+    const metric: "penjualan" | "qty" = urut.startsWith("qty") ? "qty" : "penjualan";
+    const terms = trenCari.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const values: (number | null)[] = Array(12).fill(null);
+    const cocok = new Set<string>();
+    const total = new Map<string, number>();
+    for (const b of semua?.bulan ?? []) {
+      const idx = NAMA_BULAN.findIndex((n) => b.label.startsWith(n));
+      if (idx === -1) continue;
+      let sum = 0;
+      for (const r of b.rows) {
+        if (areaEff !== "ALL" && r.area !== areaEff) continue;
+        if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) continue;
+        if (brandEff !== "ALL" && r.brand !== brandEff) continue;
+        total.set(r.barang, (total.get(r.barang) ?? 0) + r.penjualan);
+        if (terms.length > 0) {
+          const hay = `${r.barang} ${r.brand}`.toLowerCase();
+          if (!terms.every((t) => hay.includes(t))) continue;
+        }
+        cocok.add(r.barang);
+        sum += metric === "qty" ? r.qty : r.penjualan;
+      }
+      values[idx] = sum;
+    }
+    const config: ProdukTrenConfig = { labels: NAMA_BULAN.map((n) => n.slice(0, 3)), values, metric };
+    const saran = [...total.entries()].sort((a, b) => b[1] - a[1]).slice(0, 300).map(([n]) => n);
+    // perubahan bulan terbaru vs bulan sebelumnya yang ada datanya
+    const ada = values.map((v, i) => (v == null ? -1 : i)).filter((i) => i !== -1);
+    let delta: { dari: string; ke: string; persen: number | null } | null = null;
+    if (ada.length >= 2) {
+      const a = values[ada[ada.length - 2]]!, b = values[ada[ada.length - 1]]!;
+      delta = { dari: NAMA_BULAN[ada[ada.length - 2]], ke: NAMA_BULAN[ada[ada.length - 1]], persen: a === 0 ? null : ((b - a) / Math.abs(a)) * 100 };
+    }
+    return { config, saran, jumlahBarang: cocok.size, delta };
+  }, [semua, areaEff, kategoriEff, brandEff, urut, trenCari]);
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paged = sorted.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -270,6 +310,45 @@ function ProdukPageContent() {
           <span className="text-indigo-300">{urut.endsWith("desc") ? `${CHART_TOP} tertinggi` : `${CHART_TOP} terendah`}</span>
         </p>
         <ProdukChart config={chartCfg} />
+      </div>
+
+      {/* Tren per bulan */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+            <Icn e="📈" className="h-4 w-4" />
+            Tren {trenData.config.metric === "qty" ? "qty" : "penjualan"} per bulan —{" "}
+            <span className="text-indigo-300">{trenCari.trim() ? `${trenData.jumlahBarang} barang cocok` : "total sesuai filter"}</span>
+          </p>
+          <>
+            <input list="tren-saran" value={trenCari} onChange={(e) => setTrenCari(e.target.value)}
+              placeholder="Ketik nama barang / brand, kosongkan untuk total…"
+              className="h-11 min-w-72 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
+            <datalist id="tren-saran">
+              {trenData.saran.map((n) => <option key={n} value={n} />)}
+            </datalist>
+          </>
+        </div>
+        {trenData.delta && (
+          <p className="mb-2 text-sm text-slate-400">
+            {trenData.delta.ke} vs {trenData.delta.dari}:{" "}
+            {trenData.delta.persen === null ? (
+              <span>tidak bisa dihitung (bulan sebelumnya 0)</span>
+            ) : (
+              <span className={trenData.delta.persen >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-rose-300"}>
+                {trenData.delta.persen >= 0 ? "▲" : "▼"} {Math.abs(trenData.delta.persen).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
+              </span>
+            )}
+          </p>
+        )}
+        {trenCari.trim() && trenData.jumlahBarang === 0 ? (
+          <p className="py-16 text-center text-slate-500">🔍 Tidak ada barang/brand yang cocok.</p>
+        ) : (
+          <ProdukTrenChart config={trenData.config} />
+        )}
+        <p className="mt-2 text-xs text-slate-500">
+          Ikut filter Area / Kategori / Brand dan pilihan urutan (qty atau penjualan). Bulan tanpa tab ditampilkan putus.
+        </p>
       </div>
 
       {/* Tabel */}
