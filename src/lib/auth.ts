@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { COOKIE, verifyToken } from "./authToken";
-import { getUser, type PublicUser } from "./userStore";
+import { getUser, toPublic, type PublicUser } from "./userStore";
 
 /** User dari cookie sesi; null kalau tidak valid, sudah dihapus, atau password sudah diganti. */
 export async function currentUser(): Promise<PublicUser | null> {
@@ -10,7 +11,18 @@ export async function currentUser(): Promise<PublicUser | null> {
   if (!p) return null;
   const u = await getUser(p.u);
   if (!u || u.ver !== p.v) return null;
-  return { id: u.id, nama: u.nama, role: u.role, ver: u.ver, dibuat: u.dibuat };
+  return toPublic(u);
+}
+
+/**
+ * Dipakai di layout tiap tab (server): tidak login → /login, tidak punya akses → beranda.
+ * Tab "pengguna" khusus akun utama.
+ */
+export async function requireTab(key: string): Promise<void> {
+  const me = await currentUser();
+  if (!me) return redirect("/login");
+  const boleh = key === "pengguna" ? me.role === "admin" : me.tabs.includes(key);
+  if (!boleh) return redirect("/");
 }
 
 export function cookieSecure(request: Request): boolean {

@@ -6,7 +6,8 @@ import { useTheme } from "@/app/providers";
 import { rpShort } from "@/lib/utils";
 import BrandLogo from "@/components/BrandLogo";
 
-export interface ProdukChartItem { name: string; brand: string; value: number }
+/** value = panjang batang (qty atau penjualan, sesuai urutan); qty & penjualan selalu terisi untuk label/tooltip */
+export interface ProdukChartItem { name: string; brand: string; value: number; qty: number; penjualan: number }
 export interface ProdukChartConfig {
   items: ProdukChartItem[]; // urut dari batang paling BAWAH ke atas (hasil reverse di page)
   metric: "penjualan" | "qty";
@@ -23,18 +24,28 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
   const txt = isDark ? "#94a3b8" : "#475569";
   const gridLine = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.08)";
   const fmt = (v: number) => (cfg.metric === "penjualan" ? rpShort(v) : v.toLocaleString("id-ID"));
+  const qtyTxt = (v: number) => `${v.toLocaleString("id-ID")} qty`;
+  // Label di ujung batang: metrik utama dulu, lalu yang satunya
+  const labelTxt = (it?: ProdukChartItem) =>
+    !it ? "" : cfg.metric === "qty" ? `${qtyTxt(it.qty)} · ${rpShort(it.penjualan)}` : `${rpShort(it.penjualan)} · ${qtyTxt(it.qty)}`;
   const maxV = Math.max(...cfg.items.map((i) => i.value), 0);
 
   return {
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
     tooltip: {
       trigger: "axis", axisPointer: { type: "shadow" },
-      valueFormatter: (v) => fmt(Number(v)),
+      formatter: (params) => {
+        const p = (Array.isArray(params) ? params[0] : params) as { dataIndex: number };
+        const it = cfg.items[p.dataIndex];
+        if (!it) return "";
+        const esc = it.name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+        return `<b>${esc}</b><br/>Penjualan: <b>${rpShort(it.penjualan)}</b><br/>Qty: <b>${it.qty.toLocaleString("id-ID")}</b>`;
+      },
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 13 },
     },
-    grid: { left: AXIS_X, right: 56, top: GRID.top, bottom: GRID.bottom, containLabel: false },
+    grid: { left: AXIS_X, right: 150, top: GRID.top, bottom: GRID.bottom, containLabel: false },
     xAxis: {
       type: "value",
       max: maxV > 0 ? Math.ceil(maxV * 1.2) : undefined, // skala rapat
@@ -63,7 +74,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },
       label: {
         show: true, position: "right", color: txt, fontSize: 13,
-        formatter: (p) => fmt(Number(p.value)), // ← FIX: tanpa anotasi { value: number }
+        formatter: (p) => labelTxt(cfg.items[p.dataIndex]),
       },
     }],
     animationDuration: 900, animationDurationUpdate: 700, animationEasingUpdate: "cubicOut",

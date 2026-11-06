@@ -2,44 +2,26 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/app/providers";
 import Icn from "./Icn";
-
-const TABS = [
-  { href: "/bulanan", label: "Bulanan" },
-  { href: "/mingguan", label: "Mingguan" },
-  { href: "/dap", label: "DAP" },
-  { href: "/produk", label: "Produk" },
-  { href: "/catatan", label: "Catatan" },
-];
-
-type Me = { user: { id: string; nama: string; role: "admin" | "user" } };
-
-class AuthError extends Error {
-  status: number;
-  constructor(status: number) {
-    super("auth");
-    this.status = status;
-  }
-}
+import UbahPassword from "./UbahPassword";
+import { TAB_LIST } from "@/lib/tabs";
+import { AuthError, fetchMe } from "@/lib/me";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const qc = useQueryClient();
   const { isDark, toggle } = useTheme();
+  const [ubahPw, setUbahPw] = useState(false);
 
   // Dicek berkala (interval bawaan 30 dtk): user yang dihapus / password-nya diganti otomatis keluar
   const { data: me, error } = useQuery({
     queryKey: ["me"],
     retry: false,
-    queryFn: async (): Promise<Me> => {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
-      if (!res.ok) throw new AuthError(res.status);
-      return res.json();
-    },
+    queryFn: fetchMe,
   });
 
   useEffect(() => {
@@ -56,7 +38,13 @@ export default function Navbar() {
     router.refresh();
   }
 
-  const tabs = me?.user.role === "admin" ? [...TABS, { href: "/pengguna", label: "Pengguna" }] : TABS;
+  // Hanya tab yang diizinkan untuk akun ini (menunggu data akun dulu supaya tab terlarang tidak sempat berkedip)
+  const tabs = me
+    ? [
+        ...TAB_LIST.filter((t) => me.user.tabs.includes(t.key)),
+        ...(me.user.role === "admin" ? [{ key: "pengguna", href: "/pengguna", label: "Pengguna" }] : []),
+      ]
+    : [];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-[var(--nav-bg)] backdrop-blur">
@@ -80,9 +68,11 @@ export default function Navbar() {
         })}
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {me && (
-            <span className="hidden text-sm text-slate-400 sm:inline" title={`ID: ${me.user.id}`}>
-              {me.user.nama}
-            </span>
+            <button onClick={() => setUbahPw(true)} title={`Ubah password (ID: ${me.user.id})`}
+              className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-base text-slate-300 transition-colors hover:bg-white/5 hover:text-slate-100">
+              <Icn e="🔑" className="h-5 w-5" />
+              <span className="hidden max-w-32 truncate text-sm sm:inline">{me.user.nama}</span>
+            </button>
           )}
           <button onClick={toggle} title="Ganti tema (tersimpan otomatis)" aria-pressed={!isDark}
             className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-base transition-transform hover:scale-105 active:scale-95">
@@ -94,6 +84,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+      {ubahPw && <UbahPassword onClose={() => setUbahPw(false)} />}
     </nav>
   );
 }

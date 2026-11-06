@@ -29,6 +29,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
     const user = await updateUser(id, {
       nama: typeof b.nama === "string" ? b.nama : undefined,
       password: newPw,
+      tabs: b.tabs,
     });
     const res = NextResponse.json({ user });
     // Admin mengganti password dirinya sendiri: terbitkan ulang cookie supaya tidak ter-logout

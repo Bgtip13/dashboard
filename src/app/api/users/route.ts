@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       id: String(b.id ?? ""),
       nama: String(b.nama ?? ""),
       password: String(b.password ?? ""),
+      tabs: b.tabs,
     });
     return NextResponse.json({ user }, { status: 201 });
   } catch (e) {

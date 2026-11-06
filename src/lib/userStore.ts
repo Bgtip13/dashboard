@@ -1,6 +1,7 @@
 /** Penyimpanan user di Supabase (khusus server). Password di-hash dengan scrypt. */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
+import { ALL_TAB_KEYS, resolveTabs } from "./tabs";
 
 export type Role = "admin" | "user";
 export interface User {
@@ -11,6 +12,8 @@ export interface User {
   /** naik tiap password diganti, sesi lama otomatis batal */
   ver: number;
   dibuat: number;
+  /** tab yang boleh dibuka (kunci dari lib/tabs.ts); akun utama selalu semua */
+  tabs: string[];
 }
 export type PublicUser = Omit<User, "hash">;
 
@@ -61,22 +64,33 @@ async function verifyPassword(pw: string, stored: string): Promise<boolean> {
 let dummyHash: Promise<string> | null = null;
 
 /* ---------- baris <-> objek ---------- */
-type Row = { id: string; nama: string; role: string; hash: string; ver: number; dibuat: number | string };
+type Row = { id: string; nama: string; role: string; hash: string; ver: number; dibuat: number | string; tabs?: unknown };
 
-const toUser = (r: Row): User => ({
-  id: r.id,
-  nama: r.nama,
-  role: r.role === "admin" ? "admin" : "user",
-  hash: r.hash,
-  ver: Number(r.ver),
-  dibuat: Number(r.dibuat),
-});
+const toUser = (r: Row): User => {
+  const role: Role = r.role === "admin" ? "admin" : "user";
+  return {
+    id: r.id,
+    nama: r.nama,
+    role,
+    hash: r.hash,
+    ver: Number(r.ver),
+    dibuat: Number(r.dibuat),
+    tabs: resolveTabs(role, r.tabs),
+  };
+};
 
-function toPublic(u: User): PublicUser {
-  return { id: u.id, nama: u.nama, role: u.role, ver: u.ver, dibuat: u.dibuat };
+export function toPublic(u: User): PublicUser {
+  return { id: u.id, nama: u.nama, role: u.role, ver: u.ver, dibuat: u.dibuat, tabs: u.tabs };
 }
 
 function fail(message: string, error: { message: string }): never {
+  // Kolom `tabs` baru ditambahkan — beri petunjuk jelas kalau migrasinya belum dijalankan
+  if (/\btabs\b/i.test(error.message)) {
+    throw new UserError(
+      "Kolom `tabs` belum ada di tabel app_users. Jalankan supabase/add_tabs.sql di Supabase SQL Editor.",
+      500,
+    );
+  }
   throw new Error(`${message}: ${error.message}`);
 }
 
@@ -125,6 +139,12 @@ export function cekPassword(pw: string): string {
 
 const cekNama = (n: string, fallback: string) => n.trim().slice(0, 40) || fallback;
 
+/** Saring daftar tab dari input: hanya kunci yang dikenal, tanpa duplikat. */
+export function cekTabs(input: unknown): string[] {
+  if (!Array.isArray(input)) throw new UserError("Daftar tab tidak valid.");
+  return ALL_TAB_KEYS.filter((k) => input.includes(k));
+}
+
 /* ---------- operasi ---------- */
 async function findRow(id: string): Promise<User | null> {
   await ensureAdmin();
@@ -152,9 +172,12 @@ export async function authenticate(id: string, password: string): Promise<Public
   return (await verifyPassword(password, user.hash)) ? toPublic(user) : null;
 }
 
-export async function createUser(input: { id: string; nama: string; password: string }): Promise<PublicUser> {
+export async function createUser(
+  input: { id: string; nama: string; password: string; tabs?: unknown },
+): Promise<PublicUser> {
   const id = cekId(input.id);
   const password = cekPassword(input.password);
+  const tabs = input.tabs === undefined ? [...ALL_TAB_KEYS] : cekTabs(input.tabs);
   await ensureAdmin();
 
   const baru: User = {
@@ -164,6 +187,7 @@ export async function createUser(input: { id: string; nama: string; password: st
     hash: await hashPassword(password),
     ver: 1,
     dibuat: Date.now(),
+    tabs,
   };
   const { error } = await db().from(TABLE).insert(baru);
   if (error) {
@@ -175,21 +199,27 @@ export async function createUser(input: { id: string; nama: string; password: st
 
 export async function updateUser(
   id: string,
-  patch: { nama?: string; password?: string },
+  patch: { nama?: string; password?: string; tabs?: unknown },
 ): Promise<PublicUser> {
   const cur = await findRow(id);
   if (!cur) throw new UserError("User tidak ditemukan.", 404);
 
   const next: User = { ...cur };
+  const kolom: Record<string, unknown> = {};
   if (typeof patch.nama === "string") next.nama = cekNama(patch.nama, cur.id);
   if (patch.password) {
     next.hash = await hashPassword(cekPassword(patch.password));
     next.ver = cur.ver + 1; // sesi lama user ini otomatis tidak berlaku
   }
+  if (patch.tabs !== undefined) {
+    if (cur.role === "admin") throw new UserError("Akun utama selalu bisa membuka semua tab.", 403);
+    next.tabs = cekTabs(patch.tabs);
+    kolom.tabs = next.tabs; // hanya ditulis bila memang diubah
+  }
 
   const { error } = await db()
     .from(TABLE)
-    .update({ nama: next.nama, hash: next.hash, ver: next.ver })
+    .update({ nama: next.nama, hash: next.hash, ver: next.ver, ...kolom })
     .eq("id", cur.id);
   if (error) fail("Gagal memperbarui user", error);
   return toPublic(next);

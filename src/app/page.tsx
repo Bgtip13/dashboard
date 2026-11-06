@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { fetchDap, fetchMonthly } from "@/lib/api";
+import { fetchMe } from "@/lib/me";
 import { getBadge } from "@/lib/badge";
 import { hariEfektif, rp, rpShort } from "@/lib/utils";
 import {
@@ -36,6 +37,8 @@ const NAV = [
 ];
 
 export default function BerandaPage() {
+  // cache ["me"] diisi Navbar; kartu akses cepat hanya untuk tab yang boleh dibuka akun ini
+  const { data: me } = useQuery({ queryKey: ["me"], queryFn: fetchMe, retry: false });
   const { data } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const { data: dap, isLoading: dapLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const [now, setNow] = useState<Date | null>(null);
@@ -215,7 +218,7 @@ export default function BerandaPage() {
 
       {/* Akses cepat */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {NAV.map((n, i) => (
+        {NAV.filter((n) => me?.user.tabs.includes(n.href.slice(1)) ?? false).map((n, i) => (
           <motion.div key={n.href} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.08 }}>
             <Link href={n.href}
               className="group block rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-all hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
