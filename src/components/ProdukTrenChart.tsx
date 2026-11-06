@@ -28,7 +28,7 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
       textStyle: { color: strong, fontSize: 13 },
       valueFormatter: (v) => (v == null || v === "-" ? "belum ada data" : num(v)),
       formatter: (params) => {
-        const arr = (Array.isArray(params) ? params : [params]) as { axisValueLabel: string; seriesName: string; value: unknown }[];
+        const arr = (Array.isArray(params) ? params : [params]) as unknown as { axisValueLabel: string; seriesName: string; value: unknown }[];
         const head = arr[0]?.axisValueLabel ?? "";
         const rows = arr.map((p) => `${p.seriesName}: <b>${p.value == null || p.value === "-" ? "belum ada data" : p.seriesName === "Penjualan" ? rpShort(Number(p.value)) : num(p.value)}</b>`);
         return [`<b>${head}</b>`, ...rows].join("<br/>");

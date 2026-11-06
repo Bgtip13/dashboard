@@ -35,7 +35,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
     tooltip: {
       trigger: "axis", axisPointer: { type: "shadow" },
       formatter: (params) => {
-        const p = (Array.isArray(params) ? params[0] : params) as { dataIndex: number };
+        const p = (Array.isArray(params) ? params[0] : params) as unknown as { dataIndex: number };
         const it = cfg.items[p.dataIndex];
         if (!it) return "";
         const esc = it.name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
