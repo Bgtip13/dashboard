@@ -4,9 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { rp } from "@/lib/utils";
-import {
-  SEMUA_BULAN, fetchDaftarBulan, fetchProdukBulan, fetchProdukSemua,
-} from "@/lib/produk";
+import { SEMUA_BULAN, fetchProdukSemuaBulan } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
@@ -70,33 +68,35 @@ function ProdukPageContent() {
   const sp = useSearchParams();
   const qc = useQueryClient();
 
-  // Daftar bulan (dari tab INDEX di Google Sheet, atau cadangan di lib/produk.ts)
-  const { data: daftar } = useQuery({ queryKey: ["produk-bulan"], queryFn: fetchDaftarBulan });
-  const bulanList = useMemo(() => daftar ?? [], [daftar]);
+  // Semua tab bulan (nama tab: Januari … Desember) diambil sekali, lalu dipilih di sisi klien
+  const { data: semua, isLoading, error } = useQuery({
+    queryKey: ["produk-semua"],
+    queryFn: fetchProdukSemuaBulan,
+    refetchInterval: 120_000,
+  });
+  const bulanList = useMemo(() => (semua?.bulan ?? []).map((b) => b.label), [semua]);
   const [bulanPilih, setBulanPilih] = useState(() => (sp.get("bulan") ?? "").trim());
 
-  // Bulan efektif: pilihan user (jika valid) → kalau tidak, bulan terbaru (baris paling bawah)
+  // Bulan efektif: pilihan user (jika valid) → kalau tidak, bulan terbaru yang ada datanya
   const bulanEff = useMemo(() => {
     if (bulanList.length === 0) return "";
     if (bulanPilih.toUpperCase() === SEMUA_BULAN) return SEMUA_BULAN;
-    const hit = bulanList.find((b) => b.label.toLowerCase() === bulanPilih.toLowerCase());
-    return (hit ?? bulanList[bulanList.length - 1]).label;
+    const hit = bulanList.find((l) => l.toLowerCase() === bulanPilih.toLowerCase() || l.split(" ")[0].toLowerCase() === bulanPilih.toLowerCase());
+    return hit ?? bulanList[bulanList.length - 1];
   }, [bulanList, bulanPilih]);
 
-  const { data, isLoading: loadingData, isPlaceholderData, error } = useQuery({
-    queryKey: ["produk-data", bulanEff],
-    enabled: bulanEff !== "",
-    queryFn: () =>
-      bulanEff === SEMUA_BULAN
-        ? fetchProdukSemua(bulanList)
-        : fetchProdukBulan(bulanList.find((b) => b.label === bulanEff)!),
-  });
-  const isLoading = !daftar || loadingData || isPlaceholderData;
+  const data = useMemo(() => {
+    if (!semua || !bulanEff) return undefined;
+    const rows = bulanEff === SEMUA_BULAN
+      ? semua.bulan.flatMap((b) => b.rows)
+      : semua.bulan.find((b) => b.label === bulanEff)?.rows ?? [];
+    return { updatedAt: semua.updatedAt, rows };
+  }, [semua, bulanEff]);
 
   // Asisten AI membaca cache ["produk"] → isi dengan data bulan yang sedang tampil
   useEffect(() => {
-    if (data && !isPlaceholderData) qc.setQueryData(["produk"], data);
-  }, [data, isPlaceholderData, qc]);
+    if (data) qc.setQueryData(["produk"], data);
+  }, [data, qc]);
 
   // Filter awal bisa datang dari Asisten AI lewat query string (?area=&brand=&cari=…)
   const [area, setArea] = useState(() => (sp.get("area") ?? "").trim().toUpperCase() || "ALL");
@@ -198,7 +198,7 @@ function ProdukPageContent() {
             {bulanEff && <span className="ml-3 text-xl font-medium text-indigo-300">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}
           </h1>
           <p className="text-sm text-slate-400">
-            {isLoading ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
+            {isLoading || !data ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
           </p>
         </div>
         {!isLoading && (
@@ -212,16 +212,16 @@ function ProdukPageContent() {
         )}
       </div>
 
-      {data && data.gagal.length > 0 && (
+      {semua && semua.catatan.length > 0 && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
-          Bulan berikut gagal dimuat dan tidak ikut dihitung: {data.gagal.join(", ")}. Cek gid-nya & pastikan sheet sudah di-publish.
+          Tab berikut tidak ikut tampil → {semua.catatan.join(" · ")}
         </p>
       )}
 
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
         <select value={bulanEff} onChange={(e) => setBulanPilih(e.target.value)} className={selectCls} aria-label="Pilih bulan">
-          {[...bulanList].reverse().map((b) => <option key={b.gid} value={b.label}>{b.label}</option>)}
+          {[...bulanList].reverse().map((l) => <option key={l} value={l}>{l}</option>)}
           {bulanList.length > 1 && <option value={SEMUA_BULAN}>Semua Bulan</option>}
         </select>
         <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
