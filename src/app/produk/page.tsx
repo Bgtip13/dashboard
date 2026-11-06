@@ -1,60 +1,19 @@
 "use client";
-import { useQuery } from "@tanstack/react-query";
-import { Suspense, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { parseCsv } from "@/lib/csv";
 import { rp } from "@/lib/utils";
+import {
+  SEMUA_BULAN, fetchDaftarBulan, fetchProdukBulan, fetchProdukSemua,
+} from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
 import ProdukChart, { type ProdukChartConfig } from "@/components/ProdukChart";
 
-// Bisa dioverride lewat .env.local: NEXT_PUBLIC_SHEET_PRODUK=<url csv>
-const PRODUK_URL =
-  process.env.NEXT_PUBLIC_SHEET_PRODUK ??
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7sB47BzQsD42E5WB424nbKUjS2kldryPZqc0_S5JTjiT2vQyxa8cCxKP-LXJ1Q_gD3T2ZALg46lIB/pub?gid=1642504514&single=true&output=csv";
-
 const PAGE_SIZE = 25;
 const CHART_TOP = 10; // ← jumlah batang grafik
-
-type ProdukRow = {
-  area: string; kabupaten: string; kecamatan: string; kategori: string;
-  brand: string; barang: string; pelanggan: string; qty: number; penjualan: number;
-};
-type ProdukPayload = { updatedAt: string; rows: ProdukRow[] };
-
-const toNum = (s: unknown) => {
-  const n = Number(String(s ?? "").replace(/[^\d.-]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-};
-
-/**
- * Rapikan teks dari sheet: spasi ganda / spasi tak terlihat (mis. "WETFOOD  CAN")
- * disatukan supaya kategori, brand, dan wilayah tidak muncul dobel di filter.
- */
-const teks = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
-
-async function fetchProduk(): Promise<ProdukPayload> {
-  const sep = PRODUK_URL.includes("?") ? "&" : "?";
-  const res = await fetch(`${PRODUK_URL}${sep}_=${Date.now()}`);
-  if (!res.ok) throw new Error(`Gagal ambil data sheet (${res.status})`);
-  const vals = await parseCsv(await res.text());
-  const rows: ProdukRow[] = vals.slice(1)
-    .filter((r) => r.join("").trim() !== "")
-    .map((r) => ({
-      area: teks(r[0]).toUpperCase(),
-      kabupaten: teks(r[1]),
-      kecamatan: teks(r[2]),
-      kategori: teks(r[3]),
-      brand: teks(r[4]),
-      barang: teks(r[5]),
-      pelanggan: teks(r[6]),
-      qty: toNum(r[7]),
-      penjualan: toNum(r[8]),
-    }));
-  return { updatedAt: new Date().toISOString(), rows };
-}
 
 const uniqSorted = (xs: string[]) => Array.from(new Set(xs.filter(Boolean))).sort();
 
@@ -109,7 +68,35 @@ type Urut = "pj-desc" | "pj-asc" | "qty-desc" | "qty-asc";
 
 function ProdukPageContent() {
   const sp = useSearchParams();
-  const { data, isLoading, error } = useQuery({ queryKey: ["produk"], queryFn: fetchProduk });
+  const qc = useQueryClient();
+
+  // Daftar bulan (dari tab INDEX di Google Sheet, atau cadangan di lib/produk.ts)
+  const { data: daftar } = useQuery({ queryKey: ["produk-bulan"], queryFn: fetchDaftarBulan });
+  const bulanList = useMemo(() => daftar ?? [], [daftar]);
+  const [bulanPilih, setBulanPilih] = useState(() => (sp.get("bulan") ?? "").trim());
+
+  // Bulan efektif: pilihan user (jika valid) → kalau tidak, bulan terbaru (baris paling bawah)
+  const bulanEff = useMemo(() => {
+    if (bulanList.length === 0) return "";
+    if (bulanPilih.toUpperCase() === SEMUA_BULAN) return SEMUA_BULAN;
+    const hit = bulanList.find((b) => b.label.toLowerCase() === bulanPilih.toLowerCase());
+    return (hit ?? bulanList[bulanList.length - 1]).label;
+  }, [bulanList, bulanPilih]);
+
+  const { data, isLoading: loadingData, isPlaceholderData, error } = useQuery({
+    queryKey: ["produk-data", bulanEff],
+    enabled: bulanEff !== "",
+    queryFn: () =>
+      bulanEff === SEMUA_BULAN
+        ? fetchProdukSemua(bulanList)
+        : fetchProdukBulan(bulanList.find((b) => b.label === bulanEff)!),
+  });
+  const isLoading = !daftar || loadingData || isPlaceholderData;
+
+  // Asisten AI membaca cache ["produk"] → isi dengan data bulan yang sedang tampil
+  useEffect(() => {
+    if (data && !isPlaceholderData) qc.setQueryData(["produk"], data);
+  }, [data, isPlaceholderData, qc]);
 
   // Filter awal bisa datang dari Asisten AI lewat query string (?area=&brand=&cari=…)
   const [area, setArea] = useState(() => (sp.get("area") ?? "").trim().toUpperCase() || "ALL");
@@ -146,7 +133,7 @@ function ProdukPageContent() {
 
   // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
   // supaya tidak memicu render berantai lewat effect).
-  const filterKey = `${areaEff}|${kategoriEff}|${brandEff}|${cari}|${urut}`;
+  const filterKey = `${bulanEff}|${areaEff}|${kategoriEff}|${brandEff}|${cari}|${urut}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
   if (lastFilterKey !== filterKey) {
     setLastFilterKey(filterKey);
@@ -206,7 +193,10 @@ function ProdukPageContent() {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold">Penjualan Produk</h1>
+          <h1 className="text-3xl font-bold">
+            Penjualan Produk
+            {bulanEff && <span className="ml-3 text-xl font-medium text-indigo-300">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}
+          </h1>
           <p className="text-sm text-slate-400">
             {isLoading ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
           </p>
@@ -222,8 +212,18 @@ function ProdukPageContent() {
         )}
       </div>
 
+      {data && data.gagal.length > 0 && (
+        <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
+          Bulan berikut gagal dimuat dan tidak ikut dihitung: {data.gagal.join(", ")}. Cek gid-nya & pastikan sheet sudah di-publish.
+        </p>
+      )}
+
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <select value={bulanEff} onChange={(e) => setBulanPilih(e.target.value)} className={selectCls} aria-label="Pilih bulan">
+          {[...bulanList].reverse().map((b) => <option key={b.gid} value={b.label}>{b.label}</option>)}
+          {bulanList.length > 1 && <option value={SEMUA_BULAN}>Semua Bulan</option>}
+        </select>
         <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
         <select value={kategoriEff} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
           <option value="ALL">Semua Kategori</option>
