@@ -8,6 +8,7 @@ import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
+import SearchSelect, { type SearchItem } from "@/components/SearchSelect";
 import ProdukChart, { type ProdukChartConfig } from "@/components/ProdukChart";
 import ProdukTrenChart, { type ProdukTrenConfig } from "@/components/ProdukTrenChart";
 
@@ -63,6 +64,19 @@ function StatCard({ label, icon, delay, children }: {
   );
 }
 
+type Delta = { dari: string; ke: string; persen: number | null } | null;
+
+/** Persentase naik/turun berwarna; null = tidak bisa dihitung */
+function Persen({ d }: { d: Delta }) {
+  if (!d) return <span>–</span>;
+  if (d.persen === null) return <span>tidak bisa dihitung (bulan sebelumnya 0)</span>;
+  return (
+    <span className={d.persen >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-rose-300"}>
+      {d.persen >= 0 ? "▲" : "▼"} {Math.abs(d.persen).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
+    </span>
+  );
+}
+
 type Urut = "pj-desc" | "pj-asc" | "qty-desc" | "qty-asc";
 
 function ProdukPageContent() {
@@ -103,6 +117,7 @@ function ProdukPageContent() {
   const [area, setArea] = useState(() => (sp.get("area") ?? "").trim().toUpperCase() || "ALL");
   const [kategori, setKategori] = useState(() => (sp.get("kategori") ?? "").trim() || "ALL");
   const [brand, setBrand] = useState(() => (sp.get("brand") ?? "").trim() || "ALL");
+  const [toko, setToko] = useState(() => (sp.get("toko") ?? "").trim() || "ALL");
   const [cari, setCari] = useState(() => sp.get("cari") ?? "");
   const [urut, setUrut] = useState<Urut>(() => {
     const raw = (sp.get("urut") ?? "").toLowerCase();
@@ -121,21 +136,29 @@ function ProdukPageContent() {
   const kategoriEff = kategori !== "ALL" && kategoris.length > 0 && !kategoris.includes(kategori) ? "ALL" : kategori;
   const brandEff = brand !== "ALL" && brands.length > 0 && !brands.includes(brand) ? "ALL" : brand;
 
+  // Daftar toko (kolom "Pelanggan") mengikuti area yang dipilih supaya daftarnya tidak terlalu panjang
+  const tokos = useMemo(
+    () => uniqSorted(rows.filter((r) => areaEff === "ALL" || r.area === areaEff).map((r) => r.pelanggan)),
+    [rows, areaEff],
+  );
+  const tokoEff = toko !== "ALL" && tokos.length > 0 && !tokos.includes(toko) ? "ALL" : toko;
+
   const filtered = useMemo(() => {
     const terms = cari.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return rows.filter((r) => {
       if (areaEff !== "ALL" && r.area !== areaEff) return false;
       if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) return false;
       if (brandEff !== "ALL" && r.brand !== brandEff) return false;
+      if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) return false;
       if (terms.length === 0) return true;
       const hay = `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten} ${r.brand}`.toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
-  }, [rows, areaEff, kategoriEff, brandEff, cari]);
+  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cari]);
 
   // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
   // supaya tidak memicu render berantai lewat effect).
-  const filterKey = `${bulanEff}|${areaEff}|${kategoriEff}|${brandEff}|${cari}|${urut}`;
+  const filterKey = `${bulanEff}|${areaEff}|${kategoriEff}|${brandEff}|${tokoEff}|${cari}|${urut}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
   if (lastFilterKey !== filterKey) {
     setLastFilterKey(filterKey);
@@ -158,14 +181,17 @@ function ProdukPageContent() {
   // Data grafik: agregat per barang + brand-nya, ikut metric & arah urutan — tampilkan 10
   const chartCfg: ProdukChartConfig = useMemo(() => {
     const metric: "penjualan" | "qty" = urut.startsWith("qty") ? "qty" : "penjualan";
-    const m = new Map<string, { val: number; brand: string }>();
+    const m = new Map<string, { qty: number; penjualan: number; brand: string }>();
     for (const r of filtered) {
-      const add = metric === "qty" ? r.qty : r.penjualan;
       const cur = m.get(r.barang);
-      if (cur) cur.val += add;
-      else m.set(r.barang, { val: add, brand: r.brand });
+      if (cur) { cur.qty += r.qty; cur.penjualan += r.penjualan; }
+      else m.set(r.barang, { qty: r.qty, penjualan: r.penjualan, brand: r.brand });
     }
-    const entries = [...m.entries()].map(([name, v]) => ({ name, brand: v.brand, value: v.val }));
+    // panjang batang mengikuti urutan (qty / penjualan); keduanya tetap ikut dibawa untuk label & tooltip
+    const entries = [...m.entries()].map(([name, v]) => ({
+      name, brand: v.brand, qty: v.qty, penjualan: v.penjualan,
+      value: metric === "qty" ? v.qty : v.penjualan,
+    }));
     entries.sort((a, b) => (urut.endsWith("desc") ? b.value - a.value : a.value - b.value));
     const top = entries.slice(0, CHART_TOP);
     // dibalik supaya peringkat 1 tampil paling atas (ECharts menggambar category dari bawah)
@@ -178,37 +204,59 @@ function ProdukPageContent() {
     const metric: "penjualan" | "qty" = urut.startsWith("qty") ? "qty" : "penjualan";
     const terms = trenCari.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const values: (number | null)[] = Array(12).fill(null);
+    const valuesRp: (number | null)[] = Array(12).fill(null);
+    const valuesQty: (number | null)[] = Array(12).fill(null);
     const cocok = new Set<string>();
     const total = new Map<string, number>();
     for (const b of semua?.bulan ?? []) {
       const idx = NAMA_BULAN.findIndex((n) => b.label.startsWith(n));
       if (idx === -1) continue;
-      let sum = 0;
+      let sumRp = 0, sumQty = 0;
       for (const r of b.rows) {
         if (areaEff !== "ALL" && r.area !== areaEff) continue;
         if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) continue;
         if (brandEff !== "ALL" && r.brand !== brandEff) continue;
+        if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) continue;
         total.set(r.barang, (total.get(r.barang) ?? 0) + r.penjualan);
         if (terms.length > 0) {
           const hay = `${r.barang} ${r.brand}`.toLowerCase();
           if (!terms.every((t) => hay.includes(t))) continue;
         }
         cocok.add(r.barang);
-        sum += metric === "qty" ? r.qty : r.penjualan;
+        sumRp += r.penjualan;
+        sumQty += r.qty;
       }
-      values[idx] = sum;
+      valuesRp[idx] = sumRp;
+      valuesQty[idx] = sumQty;
+      values[idx] = metric === "qty" ? sumQty : sumRp;
     }
-    const config: ProdukTrenConfig = { labels: NAMA_BULAN.map((n) => n.slice(0, 3)), values, metric };
+    // Setelah user memilih/mengetik produk (atau brand): tampilkan Penjualan DAN Qty bersamaan
+    const dual = terms.length > 0;
+    const config: ProdukTrenConfig = {
+      labels: NAMA_BULAN.map((n) => n.slice(0, 3)), values, metric,
+      ...(dual ? { dual: { penjualan: valuesRp, qty: valuesQty } } : {}),
+    };
     const saran = [...total.entries()].sort((a, b) => b[1] - a[1]).slice(0, 300).map(([n]) => n);
     // perubahan bulan terbaru vs bulan sebelumnya yang ada datanya
-    const ada = values.map((v, i) => (v == null ? -1 : i)).filter((i) => i !== -1);
-    let delta: { dari: string; ke: string; persen: number | null } | null = null;
-    if (ada.length >= 2) {
-      const a = values[ada[ada.length - 2]]!, b = values[ada[ada.length - 1]]!;
-      delta = { dari: NAMA_BULAN[ada[ada.length - 2]], ke: NAMA_BULAN[ada[ada.length - 1]], persen: a === 0 ? null : ((b - a) / Math.abs(a)) * 100 };
-    }
-    return { config, saran, jumlahBarang: cocok.size, delta };
-  }, [semua, areaEff, kategoriEff, brandEff, urut, trenCari]);
+    const hitungDelta = (vals: (number | null)[]) => {
+      const ada = vals.map((v, i) => (v == null ? -1 : i)).filter((i) => i !== -1);
+      if (ada.length < 2) return null;
+      const a = vals[ada[ada.length - 2]]!, b = vals[ada[ada.length - 1]]!;
+      return { dari: NAMA_BULAN[ada[ada.length - 2]], ke: NAMA_BULAN[ada[ada.length - 1]], persen: a === 0 ? null : ((b - a) / Math.abs(a)) * 100 };
+    };
+    const delta = hitungDelta(values);
+    const deltaDual = dual ? { penjualan: hitungDelta(valuesRp), qty: hitungDelta(valuesQty) } : null;
+    return { config, saran, jumlahBarang: cocok.size, delta, deltaDual };
+  }, [semua, areaEff, kategoriEff, brandEff, tokoEff, urut, trenCari]);
+
+  // Item untuk filter ber-search bar
+  const itemsBulan = useMemo<SearchItem[]>(() => [
+    ...[...bulanList].reverse().map((l) => ({ value: l, label: l })),
+    ...(bulanList.length > 1 ? [{ value: SEMUA_BULAN, label: "Semua Bulan" }] : []),
+  ], [bulanList]);
+  const itemsKategori = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Kategori" }, ...kategoris.map((k) => ({ value: k, label: k }))], [kategoris]);
+  const itemsBrand = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Brand" }, ...brands.map((b) => ({ value: b, label: b }))], [brands]);
+  const itemsToko = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Toko" }, ...tokos.map((t) => ({ value: t, label: t }))], [tokos]);
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const paged = sorted.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
@@ -260,22 +308,14 @@ function ProdukPageContent() {
 
       {/* Filter */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <select value={bulanEff} onChange={(e) => setBulanPilih(e.target.value)} className={selectCls} aria-label="Pilih bulan">
-          {[...bulanList].reverse().map((l) => <option key={l} value={l}>{l}</option>)}
-          {bulanList.length > 1 && <option value={SEMUA_BULAN}>Semua Bulan</option>}
-        </select>
+        <SearchSelect value={bulanEff} onChange={setBulanPilih} items={itemsBulan} ariaLabel="Pilih bulan" placeholder="Cari bulan…" className="min-w-44" />
         <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
-        <select value={kategoriEff} onChange={(e) => setKategori(e.target.value)} className={selectCls}>
-          <option value="ALL">Semua Kategori</option>
-          {kategoris.map((k) => <option key={k} value={k}>{k}</option>)}
-        </select>
+        <SearchSelect value={kategoriEff} onChange={setKategori} items={itemsKategori} ariaLabel="Pilih kategori" placeholder="Cari kategori…" />
         <span className="flex items-center gap-2">
-          <select value={brandEff} onChange={(e) => setBrand(e.target.value)} className={selectCls}>
-          <option value="ALL">Semua Brand</option>
-          {brands.map((b) => <option key={b} value={b}>{b}</option>)}
-          </select>
+          <SearchSelect value={brandEff} onChange={setBrand} items={itemsBrand} ariaLabel="Pilih brand" placeholder="Cari brand…" />
           {brandEff !== "ALL" && <BrandLogo brand={brandEff} size={30} />}
         </span>
+        <SearchSelect value={tokoEff} onChange={setToko} items={itemsToko} ariaLabel="Pilih toko" placeholder="Cari nama toko…" className="min-w-52" />
         <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
           <option value="pj-desc">Penjualan tertinggi</option>
           <option value="pj-asc">Penjualan terendah</option>
@@ -317,7 +357,7 @@ function ProdukPageContent() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
             <Icn e="📈" className="h-4 w-4" />
-            Tren {trenData.config.metric === "qty" ? "qty" : "penjualan"} per bulan —{" "}
+            Tren {trenData.config.dual ? "penjualan & qty" : trenData.config.metric === "qty" ? "qty" : "penjualan"} per bulan —{" "}
             <span className="text-indigo-300">{trenCari.trim() ? `${trenData.jumlahBarang} barang cocok` : "total sesuai filter"}</span>
           </p>
           <>
@@ -329,16 +369,17 @@ function ProdukPageContent() {
             </datalist>
           </>
         </div>
-        {trenData.delta && (
+        {trenData.deltaDual ? (
+          trenData.deltaDual.penjualan && trenData.deltaDual.qty && (
+            <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
+              <span>{trenData.deltaDual.penjualan.ke} vs {trenData.deltaDual.penjualan.dari}:</span>
+              <span>Penjualan <Persen d={trenData.deltaDual.penjualan} /></span>
+              <span>Qty <Persen d={trenData.deltaDual.qty} /></span>
+            </p>
+          )
+        ) : trenData.delta && (
           <p className="mb-2 text-sm text-slate-400">
-            {trenData.delta.ke} vs {trenData.delta.dari}:{" "}
-            {trenData.delta.persen === null ? (
-              <span>tidak bisa dihitung (bulan sebelumnya 0)</span>
-            ) : (
-              <span className={trenData.delta.persen >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-rose-300"}>
-                {trenData.delta.persen >= 0 ? "▲" : "▼"} {Math.abs(trenData.delta.persen).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
-              </span>
-            )}
+            {trenData.delta.ke} vs {trenData.delta.dari}: <Persen d={trenData.delta} />
           </p>
         )}
         {trenCari.trim() && trenData.jumlahBarang === 0 ? (
@@ -347,7 +388,7 @@ function ProdukPageContent() {
           <ProdukTrenChart config={trenData.config} />
         )}
         <p className="mt-2 text-xs text-slate-500">
-          Ikut filter Area / Kategori / Brand dan pilihan urutan (qty atau penjualan). Bulan tanpa tab ditampilkan putus.
+          Ikut filter Area / Kategori / Brand / Toko. Tanpa produk dipilih: mengikuti urutan (qty atau penjualan); setelah produk dipilih: Penjualan dan Qty tampil bersamaan. Bulan tanpa tab ditampilkan putus.
         </p>
       </div>
 
