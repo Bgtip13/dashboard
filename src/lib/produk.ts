@@ -14,7 +14,7 @@ import { parseCsv, parseNum } from "./csv";
 const SHEET_ID = (process.env.NEXT_PUBLIC_SHEET_PRODUK_ID || "").trim();
 
 export const SEMUA_BULAN = "SEMUA";
-const NAMA_BULAN = [
+export const NAMA_BULAN = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
 ];
