@@ -68,7 +68,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
       itemStyle: {
         borderRadius: [0, 6, 6, 0],
         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: "#6366f1" }, { offset: 1, color: "#22d3ee" },
+          { offset: 0, color: "#3b82f6" }, { offset: 1, color: "#22d3ee" },
         ]),
       },
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },

@@ -61,8 +61,8 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
       },
       {
         name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: 9,
-        lineStyle: { width: 3, color: "#6366f1" },
-        itemStyle: { color: "#22d3ee", borderColor: "#6366f1", borderWidth: 2 },
+        lineStyle: { width: 3, color: "#3b82f6" },
+        itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
         label: { show: true, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null ? "" : rpShort(Number(p.value))) },
       },
     ],
@@ -96,8 +96,8 @@ function option(cfg: ProdukTrenConfig, isDark: boolean): EChartsOption {
     },
     series: [{
       type: "line", data: cfg.values, connectNulls: false, symbol: "circle", symbolSize: 9,
-      lineStyle: { width: 3, color: "#6366f1" },
-      itemStyle: { color: "#22d3ee", borderColor: "#6366f1", borderWidth: 2 },
+      lineStyle: { width: 3, color: "#3b82f6" },
+      itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
           { offset: 0, color: "rgba(99,102,241,0.35)" }, { offset: 1, color: "rgba(34,211,238,0.02)" },

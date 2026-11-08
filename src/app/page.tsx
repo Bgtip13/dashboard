@@ -97,9 +97,9 @@ export default function BerandaPage() {
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div>
             <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="text-base uppercase tracking-[0.2em] text-slate-400">{tgl}</motion.p>
+              className="text-sm uppercase tracking-[0.14em] text-slate-400 sm:text-base sm:tracking-[0.2em]">{tgl}</motion.p>
             <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-              className="mt-2 text-4xl font-bold sm:text-5xl">
+              className="mt-2 text-3xl font-bold sm:text-5xl">
               {greeting(h)}, <span className="bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">{NAMA}</span>
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }}
@@ -121,9 +121,9 @@ export default function BerandaPage() {
           </div>
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
             className="text-right">
-            <p className="text-5xl font-extrabold tabular-nums tracking-tight sm:text-6xl">
+            <p className="text-4xl font-extrabold tabular-nums tracking-tight sm:text-6xl">
               {jam}<span className="animate-pulse text-indigo-300">:</span>{mnt}
-              <span className="text-3xl text-slate-400">:{dtk}</span>
+              <span className="text-2xl text-slate-400 sm:text-3xl">:{dtk}</span>
             </p>
             <p className="mt-1 text-sm uppercase tracking-widest text-slate-500">Waktu Indonesia Barat</p>
           </motion.div>

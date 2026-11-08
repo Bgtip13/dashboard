@@ -372,7 +372,7 @@ export default function Asisten() {
         onClick={() => { if (open) tutupPanel(); else setOpen(true); }}
         aria-expanded={open}
         aria-label={open ? "Tutup F.R.I.D.A.Y" : "Buka F.R.I.D.A.Y"}
-        className="fixed bottom-5 right-5 z-50 flex items-center justify-center gap-1.5 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 p-2 text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-5 z-50 sm:bottom-5 flex items-center justify-center gap-1.5 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 p-2 text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
       >
         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/15 to-indigo-500/20 ring-1 ring-cyan-300/30">
           <FridayLogo size={28} active={busy || open || speaking} />
@@ -392,7 +392,7 @@ export default function Asisten() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
-            className="fixed bottom-20 right-5 z-50 flex max-h-[min(640px,calc(100vh-8rem))] w-[min(94vw,430px)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--panel-bg)] shadow-2xl backdrop-blur"
+            className="fixed bottom-40 right-5 z-50 sm:bottom-20 flex max-h-[min(640px,calc(100dvh-13rem))] sm:max-h-[min(640px,calc(100vh-8rem))] w-[min(94vw,430px)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--panel-bg)] shadow-2xl backdrop-blur"
           >
             <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-cyan-500/[0.06] to-transparent px-4 py-3.5">
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--logo-bg)] ring-1 ring-cyan-300/25">

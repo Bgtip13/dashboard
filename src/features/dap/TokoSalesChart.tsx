@@ -34,7 +34,7 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
     series: [
       {
         name: "Aktual", type: "bar", data: values, barMaxWidth: 16,
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#22d3ee" }, { offset: 1, color: "#6366f1" }]) },
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#22d3ee" }, { offset: 1, color: "#3b82f6" }]) },
         markPoint: {
           data: [{ type: "max", name: "Terbaik" }],
           symbolSize: 50, itemStyle: { color: "#f59e0b" },

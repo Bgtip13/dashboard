@@ -79,7 +79,7 @@ function LoginForm() {
           )}
 
           <button type="submit" disabled={busy || !id.trim() || !password}
-            className="mt-6 h-12 w-full rounded-xl bg-indigo-500/90 text-base font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40">
+            className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 text-base font-semibold text-white shadow-[0_8px_28px_rgba(59,130,246,0.45)] transition-all hover:brightness-110 hover:shadow-[0_10px_34px_rgba(59,130,246,0.6)] active:scale-[0.98] disabled:opacity-40 disabled:shadow-none">
             {busy ? "Memeriksa…" : "Masuk"}
           </button>
         </div>

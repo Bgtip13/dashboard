@@ -57,7 +57,7 @@ function option(values: number[], loss: number[], sel: number, isDark: boolean):
       {
         name: "Aktual", type: "bar", stack: "potensi", barMaxWidth: 28,
         // warna series dipakai legend; warna per-bar diatur di masing-masing data
-        itemStyle: { color: "#6366f1" },
+        itemStyle: { color: "#3b82f6" },
         data: values.map((v, i) => ({
           value: v,
           itemStyle: {
@@ -65,7 +65,7 @@ function option(values: number[], loss: number[], sel: number, isDark: boolean):
             borderRadius: loss[i] > 0 ? [0, 0, 0, 0] : [6, 6, 0, 0],
             color: i === sel
               ? gradient("#fde047", "#f59e0b")
-              : gradient("#22d3ee", "#6366f1"),
+              : gradient("#22d3ee", "#3b82f6"),
             shadowBlur: i === sel ? 14 : 0,
             shadowColor: "#f59e0b88",
           },

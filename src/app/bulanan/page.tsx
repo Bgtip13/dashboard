@@ -71,7 +71,7 @@ function BulananPageContent() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <PotionGauge title="Penjualan" pct={pcp} gradient={["#6366f1", "#22d3ee"]}
+        <PotionGauge title="Penjualan" pct={pcp} gradient={["#3b82f6", "#22d3ee"]}
           formatter={(v) => `${v.toFixed(1)}%`} badge={badge}
           footer={
             <div className="space-y-1.5 text-sm">

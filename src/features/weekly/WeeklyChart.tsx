@@ -12,7 +12,7 @@ export interface ChartConfig {
 }
 
 const COLORS: Record<string, [string, string]> = {
-  SOLO: ["#6366f1", "#22d3ee"],
+  SOLO: ["#3b82f6", "#22d3ee"],
   DIY: ["#f97316", "#ec4899"],
   SEMARANG: ["#10b981", "#a3e635"],
   TAB: ["#eab308", "#fde047"],
