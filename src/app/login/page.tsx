@@ -26,12 +26,13 @@ function LoginForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, password }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; user?: { id: string; nama: string; role: "admin" | "user"; tabs: string[] } };
       if (!res.ok) throw new Error(data.error ?? "Gagal masuk.");
-      qc.removeQueries({ queryKey: ["me"] });
+      // Respons login sudah memuat data akun → isi cache "me" supaya sidebar tidak menunggu /api/auth/me lagi
+      if (data.user) qc.setQueryData(["me"], { user: data.user });
+      else qc.removeQueries({ queryKey: ["me"] });
       const next = sp.get("next") ?? "/";
       router.replace(next.startsWith("/") && !next.startsWith("//") ? next : "/");
-      router.refresh();
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
