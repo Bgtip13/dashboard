@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import Icn from "@/components/Icn";
 import {
@@ -35,15 +35,33 @@ export default function CatatanPage() {
 
   const editRef = useRef<HTMLDivElement | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Perubahan yang belum ditulis ke store: {id catatan, judul?, isi?}
+  const tunda = useRef<{ id: string; judul?: string; isi?: string } | null>(null);
+  // Judul disimpan lokal supaya input langsung responsif (tidak menunggu store/localStorage)
+  const [judulLokal, setJudulLokal] = useState("");
+  const [judulId, setJudulId] = useState<string | null>(null);
+
+  /** Tulis perubahan tertunda ke store + localStorage. */
+  const flush = useCallback(() => {
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+    const t = tunda.current;
+    if (!t) return;
+    tunda.current = null;
+    const list = daftarCatatan().map((c) =>
+      c.id === t.id
+        ? { ...c, judul: t.judul ?? c.judul, isi: t.isi ?? c.isi, diubah: Date.now() }
+        : c
+    );
+    tulisCatatan(list);
+    setStatus("tersimpan");
+  }, []);
 
   /** Simpan dengan jeda supaya tidak menulis localStorage tiap ketukan. */
-  function jadwalkan(list: Catatan[]) {
+  function jadwalkan(id: string, patch: { judul?: string; isi?: string }) {
+    tunda.current = { ...(tunda.current?.id === id ? tunda.current : { id }), ...patch };
     setStatus("menyimpan");
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      tulisCatatan(list);
-      setStatus("tersimpan");
-    }, 500);
+    timer.current = setTimeout(flush, 600);
   }
 
   const aktif = useMemo(
@@ -53,35 +71,46 @@ export default function CatatanPage() {
   const idAktif = aktif?.id ?? null;
   const urut = useMemo(() => [...daftar].sort((a, b) => b.diubah - a.diubah), [daftar]);
 
+  // Judul lokal ikut catatan aktif saat berpindah catatan (disetel saat render, bukan lewat effect)
+  if (judulId !== idAktif) {
+    setJudulId(idAktif);
+    setJudulLokal(daftarCatatan().find((x) => x.id === idAktif)?.judul ?? "");
+  }
+
   // Tulis isi catatan ke editor hanya saat berpindah catatan (bukan tiap ketukan)
   useEffect(() => {
     const el = editRef.current;
     if (!el) return;
     if (!idAktif) { el.innerHTML = ""; return; }
-    const c = daftarCatatan().find((x) => x.id === idAktif);
-    el.innerHTML = c?.isi ?? "";
+    el.innerHTML = daftarCatatan().find((x) => x.id === idAktif)?.isi ?? "";
   }, [idAktif]);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  // Sebelum pindah catatan / meninggalkan halaman: pastikan ketikan terakhir tidak hilang
+  useEffect(() => {
+    const onHide = () => flush();
+    window.addEventListener("beforeunload", onHide);
+    return () => { window.removeEventListener("beforeunload", onHide); flush(); };
+  }, [flush]);
+
+  function pilihCatatan(id: string) {
+    if (id !== idAktif) flush();
+    setAktifId(id);
+  }
 
   function ubahIsi() {
     const el = editRef.current;
     if (!el || !idAktif) return;
-    const list = daftarCatatan().map((c) =>
-      c.id === idAktif ? { ...c, isi: el.innerHTML, diubah: Date.now() } : c
-    );
-    jadwalkan(list);
+    jadwalkan(idAktif, { isi: el.innerHTML });
   }
 
   function ubahJudul(judul: string) {
     if (!idAktif) return;
-    const list = daftarCatatan().map((c) =>
-      c.id === idAktif ? { ...c, judul, diubah: Date.now() } : c
-    );
-    jadwalkan(list);
+    setJudulLokal(judul); // langsung tampil, penyimpanan menyusul
+    jadwalkan(idAktif, { judul });
   }
 
   function buat() {
+    flush();
     const kosong = daftarCatatan().find(
       (c) => !c.judul.trim() && !c.isi.replace(/<br\s*\/?>/gi, "").replace(/<[^>]*>/g, "").replace(/&nbsp;/g, "").trim()
     );
@@ -90,6 +119,7 @@ export default function CatatanPage() {
     const baru: Catatan = { id: idCatatan(), judul: "", isi: "", dibuat: Date.now(), diubah: Date.now() };
     tulisCatatan([baru, ...daftarCatatan()]);
     setAktifId(baru.id);
+    setJudulLokal("");
     setStatus("tersimpan");
     setTimeout(() => editRef.current?.focus(), 0);
   }
@@ -98,6 +128,8 @@ export default function CatatanPage() {
     const c = daftarCatatan().find((x) => x.id === id);
     const nama = c?.judul.trim() || judulDari(c?.isi ?? "") || "catatan ini";
     if (!window.confirm(`Hapus "${nama}"? Catatan yang dihapus tidak bisa dikembalikan.`)) return;
+    tunda.current = null;
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
 
     const list = daftarCatatan().filter((x) => x.id !== id);
     tulisCatatan(list);
@@ -156,7 +188,7 @@ export default function CatatanPage() {
                 return (
                   <li key={c.id}
                     className={`group flex items-start gap-1 rounded-xl px-2 py-2 transition-colors ${on ? "bg-indigo-500/20" : "hover:bg-white/[0.06]"}`}>
-                    <button onClick={() => setAktifId(c.id)} className="min-w-0 flex-1 text-left">
+                    <button onClick={() => pilihCatatan(c.id)} className="min-w-0 flex-1 text-left">
                       <p className={`truncate text-sm font-semibold ${on ? "text-indigo-200" : "text-slate-200"}`}>
                         {judulTampil(c)}
                       </p>
@@ -192,7 +224,7 @@ export default function CatatanPage() {
           ) : (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <input value={aktif.judul} onChange={(e) => ubahJudul(e.target.value)}
+                <input value={judulLokal} onChange={(e) => ubahJudul(e.target.value)}
                   placeholder="Judul catatan…" aria-label="Judul catatan"
                   className="min-w-0 flex-1 bg-transparent text-2xl font-bold outline-none placeholder:text-slate-500" />
                 <div className="flex items-center gap-3 text-xs text-slate-500">
