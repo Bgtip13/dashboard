@@ -1,6 +1,6 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { rp } from "@/lib/utils";
@@ -143,8 +143,9 @@ function ProdukPageContent() {
   );
   const tokoEff = toko !== "ALL" && tokos.length > 0 && !tokos.includes(toko) ? "ALL" : toko;
 
+  const cariTunda = useDeferredValue(cari);
   const filtered = useMemo(() => {
-    const terms = cari.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const terms = cariTunda.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return rows.filter((r) => {
       if (areaEff !== "ALL" && r.area !== areaEff) return false;
       if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) return false;
@@ -154,7 +155,7 @@ function ProdukPageContent() {
       const hay = `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten} ${r.brand}`.toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
-  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cari]);
+  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cariTunda]);
 
   // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
   // supaya tidak memicu render berantai lewat effect).
@@ -414,9 +415,7 @@ function ProdukPageContent() {
                 <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-500">🔍 Tidak ada data yang cocok.</td></tr>
               )}
               {paged.map((r, i) => (
-                <motion.tr key={`${r.area}-${r.pelanggan}-${r.barang}-${i}`}
-                  initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.03 }}
+                <tr key={`${r.area}-${r.pelanggan}-${r.barang}-${i}`}
                   className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
                   <td className="px-4 py-3">{r.kabupaten}</td>
@@ -432,7 +431,7 @@ function ProdukPageContent() {
                   <td className="px-4 py-3 text-slate-300">{r.pelanggan}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.qty.toLocaleString("id-ID")}</td>
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums ${r.penjualan < 0 ? "text-rose-300" : ""}`}>{rp(r.penjualan)}</td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
           </table>
