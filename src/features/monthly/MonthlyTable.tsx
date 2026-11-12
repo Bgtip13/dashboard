@@ -1,5 +1,4 @@
 "use client";
-import { motion } from "framer-motion";
 import { badgeTone, getBadge, toArea } from "@/lib/badge";
 import { useTheme } from "@/app/providers";
 import { rp } from "@/lib/utils";
@@ -11,7 +10,7 @@ export default function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
       <div className="overflow-x-auto">
-        <table className="w-full text-base">
+        <table className="w-full whitespace-nowrap text-base">
           <thead>
             <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
               <th className="px-5 py-3.5">Jabatan</th>
@@ -33,8 +32,7 @@ export default function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
               const area = toArea(r.area);
               const b = area ? getBadge(p, area) : null;
               return (
-                <motion.tr key={r.area + r.nama} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }} className="border-b border-white/5 transition-colors hover:bg-white/5">
+                <tr key={r.area + r.nama} className="border-b border-white/5 transition-colors hover:bg-white/5">
                   <td className="px-5 py-3.5">{r.jabatan}</td>
                   <td className="px-5 py-3.5"><span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-sm text-indigo-300">{r.area}</span></td>
                   <td className="px-5 py-3.5 font-medium">{r.nama}</td>
@@ -51,7 +49,7 @@ export default function MonthlyTable({ rows }: { rows: MonthlyRow[] }) {
                       </span>
                     ) : "—"}
                   </td>
-                </motion.tr>
+                </tr>
               );
             })}
           </tbody>

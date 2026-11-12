@@ -10,9 +10,10 @@ export function useECharts(option: EChartsOption, deps: unknown[] = []) {
     if (!ref.current) return;
     const c = echarts.init(ref.current);
     chart.current = c;
-    const onResize = () => c.resize();
-    window.addEventListener("resize", onResize);
-    return () => { window.removeEventListener("resize", onResize); c.dispose(); chart.current = null; };
+    // ResizeObserver: chart ikut menyesuaikan setiap ukuran kontainernya berubah (jendela, layout, dsb.)
+    const ro = new ResizeObserver(() => c.resize());
+    ro.observe(ref.current);
+    return () => { ro.disconnect(); c.dispose(); chart.current = null; };
   }, []);
 
   useEffect(() => {

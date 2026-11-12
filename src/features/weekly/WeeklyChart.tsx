@@ -61,5 +61,5 @@ function option(cfg: ChartConfig, isDark: boolean): EChartsOption {
 export default function WeeklyChart({ config }: { config: ChartConfig }) {
   const { isDark } = useTheme();
   const ref = useECharts(option(config, isDark), [config, isDark]);
-  return <div ref={ref} className="h-80 w-full" />;
+  return <div ref={ref} className="h-[clamp(20rem,40vh,38rem)] w-full" />;
 }

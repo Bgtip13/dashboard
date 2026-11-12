@@ -175,14 +175,14 @@ export default function CatatanPage() {
         </button>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[19rem_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[clamp(17rem,20vw,28rem)_1fr]">
         {/* Daftar catatan */}
         <aside className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5">
           <p className="px-2 py-1.5 text-xs uppercase tracking-[0.18em] text-slate-500">{daftar.length} catatan</p>
           {daftar.length === 0 ? (
             <p className="px-2 py-6 text-sm text-slate-400">Belum ada catatan. Mulai dengan “Catatan baru”.</p>
           ) : (
-            <ul className="max-h-[26rem] space-y-1 overflow-y-auto">
+            <ul className="max-h-[calc(100vh-17rem)] space-y-1 overflow-y-auto">
               {urut.map((c) => {
                 const on = c.id === idAktif;
                 return (
@@ -256,7 +256,7 @@ export default function CatatanPage() {
 
               <div ref={editRef} contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true"
                 aria-label="Isi catatan" onInput={ubahIsi} onBlur={ubahIsi}
-                className="catatan-isi min-h-[46vh] rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-[1.02rem] leading-relaxed outline-none focus:border-indigo-400/40" />
+                className="catatan-isi min-h-[calc(100vh-24rem)] rounded-xl border border-white/10 bg-black/10 px-4 py-3 text-[clamp(1.02rem,0.55vw+0.8rem,1.6rem)] leading-relaxed outline-none focus:border-indigo-400/40" />
 
               <p className="mt-2 text-xs text-slate-500">
                 Pilih teks lalu tekan alat di atas. Tulisan otomatis tersimpan di peramban ini, tidak terkirim ke server.

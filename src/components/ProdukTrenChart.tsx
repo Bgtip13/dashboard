@@ -3,7 +3,8 @@ import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import { useECharts } from "@/hooks/useECharts";
 import { useTheme } from "@/app/providers";
-import { rpShort } from "@/lib/utils";
+import { rp, rpShort } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 
 export interface ProdukTrenConfig {
   labels: string[];              // 12 nama bulan singkat (Jan … Des)
@@ -13,7 +14,8 @@ export interface ProdukTrenConfig {
   dual?: { penjualan: (number | null)[]; qty: (number | null)[] };
 }
 
-function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig["dual"]> }, isDark: boolean): EChartsOption {
+function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig["dual"]> }, isDark: boolean, full: boolean): EChartsOption {
+  const uang = full ? rp : rpShort;
   const txt = isDark ? "#94a3b8" : "#475569";
   const grid = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.08)";
   const strong = isDark ? "#e2e8f0" : "#0f172a";
@@ -30,7 +32,7 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
       formatter: (params) => {
         const arr = (Array.isArray(params) ? params : [params]) as unknown as { axisValueLabel: string; seriesName: string; value: unknown }[];
         const head = arr[0]?.axisValueLabel ?? "";
-        const rows = arr.map((p) => `${p.seriesName}: <b>${p.value == null || p.value === "-" ? "belum ada data" : p.seriesName === "Penjualan" ? rpShort(Number(p.value)) : num(p.value)}</b>`);
+        const rows = arr.map((p) => `${p.seriesName}: <b>${p.value == null || p.value === "-" ? "belum ada data" : p.seriesName === "Penjualan" ? rp(Number(p.value)) : num(p.value)}</b>`);
         return [`<b>${head}</b>`, ...rows].join("<br/>");
       },
     },
@@ -63,18 +65,19 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
         name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: 9,
         lineStyle: { width: 3, color: "#3b82f6" },
         itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
-        label: { show: true, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null ? "" : rpShort(Number(p.value))) },
+        label: { show: true, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null ? "" : uang(Number(p.value))) },
       },
     ],
     animationDuration: 800, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
   };
 }
 
-function option(cfg: ProdukTrenConfig, isDark: boolean): EChartsOption {
-  if (cfg.dual) return optionDual({ ...cfg, dual: cfg.dual }, isDark);
+function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsOption {
+  if (cfg.dual) return optionDual({ ...cfg, dual: cfg.dual }, isDark, full);
+  const uang = full ? rp : rpShort;
   const txt = isDark ? "#94a3b8" : "#475569";
   const grid = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.08)";
-  const fmt = (v: number) => (cfg.metric === "penjualan" ? rpShort(v) : v.toLocaleString("id-ID"));
+  const fmt = (v: number) => (cfg.metric === "penjualan" ? uang(v) : v.toLocaleString("id-ID"));
   return {
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
     tooltip: {
@@ -111,6 +114,22 @@ function option(cfg: ProdukTrenConfig, isDark: boolean): EChartsOption {
 
 export default function ProdukTrenChart({ config }: { config: ProdukTrenConfig }) {
   const { isDark } = useTheme();
-  const ref = useECharts(option(config, isDark), [config, isDark]);
-  return <div ref={ref} className="w-full" style={{ height: 320 }} />;
+  // Lebar kontainer → label titik ditulis lengkap (Rp91.612.345) bila cukup lebar, ringkas bila sempit
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    setW(el.clientWidth);
+    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const full = w >= 1250;
+  const ref = useECharts(option(config, isDark, full), [config, isDark, full]);
+  return (
+    <div ref={wrap} className="w-full" style={{ height: "clamp(20rem, 36vh, 34rem)" }}>
+      <div ref={ref} className="h-full w-full" />
+    </div>
+  );
 }

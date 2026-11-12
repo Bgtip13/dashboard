@@ -39,6 +39,9 @@ body {
 
 /* Tablet ke atas memakai skala presentasi (18px); HP tetap 16px agar muat */
 @media (min-width: 640px) { html { font-size: 112.5%; } }
+/* Layar sangat lebar (2K/4K/proyektor besar): seluruh ukuran berbasis rem ikut membesar
+   mengikuti lebar layar, jadi tulisan & kartu tetap proporsional dan terbaca dari jauh. */
+@media (min-width: 1920px) { html { font-size: clamp(18px, 0.94vw, 30px); } }
 html, body { max-width: 100%; overflow-x: clip; }
 
 /* ===== Token tema ===== */

@@ -396,7 +396,7 @@ function ProdukPageContent() {
       {/* Tabel */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
-          <table className="w-full text-base">
+          <table className="w-full whitespace-nowrap text-base">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
                 <th className="px-5 py-3.5 font-semibold">Area</th>
@@ -418,17 +418,17 @@ function ProdukPageContent() {
                 <tr key={`${r.area}-${r.pelanggan}-${r.barang}-${i}`}
                   className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
-                  <td className="px-4 py-3">{r.kabupaten}</td>
-                  <td className="px-4 py-3">{r.kecamatan}</td>
-                  <td className="px-4 py-3 text-slate-300">{r.kategori}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{r.kabupaten}</td>
+                  <td className="whitespace-nowrap px-4 py-3">{r.kecamatan}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-300">{r.kategori}</td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-2">
                       <BrandLogo brand={r.brand} size={24} />
                       <span className="whitespace-nowrap">{r.brand}</span>
                     </span>
                   </td>
-                  <td className="max-w-72 truncate px-4 py-3 font-medium">{r.barang}</td>
-                  <td className="px-4 py-3 text-slate-300">{r.pelanggan}</td>
+                  <td className="max-w-[clamp(16rem,34vw,60rem)] truncate px-4 py-3 font-medium" title={r.barang}>{r.barang}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-300">{r.pelanggan}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.qty.toLocaleString("id-ID")}</td>
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums ${r.penjualan < 0 ? "text-rose-300" : ""}`}>{rp(r.penjualan)}</td>
                 </tr>
