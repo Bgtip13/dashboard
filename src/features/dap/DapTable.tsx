@@ -22,13 +22,13 @@ function statusColor(s: string) {
   return { color: "#94a3b8", bg: "#1e293b" };
 }
 
-function Th({ k, sortKey, dir, onSort, children, right = false }: {
+function Th({ k, sortKey, dir, onSort, children, right = false, pad = "px-3" }: {
   k: string; sortKey: string | null; dir: 1 | -1; onSort: (k: string) => void;
-  children: React.ReactNode; right?: boolean;
+  children: React.ReactNode; right?: boolean; pad?: string;
 }) {
   const active = sortKey === k;
   return (
-    <th className={`whitespace-nowrap px-3 py-2.5 ${right ? "text-right" : "text-left"}`}>
+    <th className={`whitespace-nowrap ${pad} py-2.5 ${right ? "text-right" : "text-left"}`}>
       <button onClick={() => onSort(k)}
         className={`inline-flex items-center gap-0.5 uppercase transition-colors hover:text-indigo-300 ${active ? "text-indigo-300" : ""}`}>
         {children}
@@ -52,13 +52,19 @@ export default function DapTable({
   const [sortKey, setSortKey] = useState<string | null>(initialSort);
   const [dir, setDir] = useState<1 | -1>(initialDir);
 
-  // Angka ditulis LENGKAP (Rp1.234.567) selama tabel muat di lebar layar; kalau tidak muat → ringkas (Rp1,2 jt)
+  // Angka ditulis LENGKAP (Rp1.234.567). Kalau tabel belum muat, yang dikecilkan dulu adalah jarak antar
+  // kolom & ukuran huruf (level 0→2); singkatan (Rp1,2 jt) hanya jalan terakhir (level 3).
   const wrap = useRef<HTMLDivElement | null>(null);
   const tabel = useRef<HTMLTableElement | null>(null);
-  const lebarPenuh = useRef(0);
-  const [ringkas, setRingkas] = useState(false);
+  const [lvl, setLvl] = useState(0);
   const [cw, setCw] = useState(0);
-  const uang = ringkas ? rpShort : rp;
+  const uang = lvl >= 3 ? rpShort : rp;
+  const LEVEL = [
+    { pad: "px-3", text: "text-[0.85rem]" },
+    { pad: "px-2", text: "text-[0.8rem]" },
+    { pad: "px-1.5", text: "text-[0.75rem]" },
+    { pad: "px-2", text: "text-[0.8rem]" },
+  ][lvl];
 
   useLayoutEffect(() => {
     const el = wrap.current;
@@ -100,20 +106,16 @@ export default function DapTable({
   const view = sorted.slice(p * PAGE, p * PAGE + PAGE);
 
   // Data/halaman/bulan berganti → coba tampilan lengkap dulu (diukur ulang di layout effect, sebelum tampil)
-  const sigData = `${p}|${sortKey}|${dir}|${monthIdx}|${sorted.length}`;
+  const sigData = `${p}|${sortKey}|${dir}|${monthIdx}|${sorted.length}|${cw}`;
   const [sigLama, setSigLama] = useState(sigData);
-  if (sigLama !== sigData) { setSigLama(sigData); setRingkas(false); }
+  if (sigLama !== sigData) { setSigLama(sigData); setLvl(0); }
 
+  // Diukur sebelum tampil: selama masih meluap, naik satu level (rapatkan → lebih rapat → baru singkat)
   useLayoutEffect(() => {
     const t = tabel.current;
     if (!t || cw === 0) return;
-    if (!ringkas) {
-      if (t.offsetWidth > cw + 1) { lebarPenuh.current = t.offsetWidth; setRingkas(true); }
-      else lebarPenuh.current = 0;
-    } else if (lebarPenuh.current && cw >= lebarPenuh.current) {
-      setRingkas(false);
-    }
-  }, [ringkas, cw, sigData, view]);
+    if (lvl < 3 && t.offsetWidth > cw + 1) setLvl(lvl + 1);
+  }, [lvl, cw, sigData, view]);
 
   const onSort = (k: string) => {
     if (sortKey === k) setDir((d) => (d === 1 ? -1 : 1));
@@ -121,7 +123,7 @@ export default function DapTable({
     setPage(0);
   };
 
-  const td = "whitespace-nowrap px-3 py-2";
+  const td = `whitespace-nowrap ${LEVEL.pad} py-2`;
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
@@ -140,28 +142,28 @@ export default function DapTable({
         </div>
       </div>
       <div ref={wrap} className="tbl-scroll">
-      <table ref={tabel} className="w-max min-w-full text-[0.85rem] leading-snug">
+      <table ref={tabel} className={`w-max min-w-full ${LEVEL.text} leading-snug`}>
         <thead>
           <tr className="border-b border-white/10 bg-white/5 text-[0.75rem] text-slate-400">
-            <th className="px-3 py-2.5 text-left">NO</th>
-            <Th k="area" sortKey={sortKey} dir={dir} onSort={onSort}>Area</Th>
-            <Th k="kabupaten" sortKey={sortKey} dir={dir} onSort={onSort}>Kab.</Th>
-            <Th k="kecamatan" sortKey={sortKey} dir={dir} onSort={onSort}>Kec.</Th>
-            <Th k="toko" sortKey={sortKey} dir={dir} onSort={onSort}>Toko</Th>
-            <Th k="adm" sortKey={sortKey} dir={dir} onSort={onSort}>ADM</Th>
-            <Th k="kelasToko" sortKey={sortKey} dir={dir} onSort={onSort}>Kelas</Th>
-            <Th k="aktual" sortKey={sortKey} dir={dir} onSort={onSort} right>Akt {MONTH_SHORT[monthIdx]}</Th>
-            <Th k="selisih" sortKey={sortKey} dir={dir} onSort={onSort} right>
+            <th className={`${LEVEL.pad} py-2.5 text-left`}>NO</th>
+            <Th k="area" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Area</Th>
+            <Th k="kabupaten" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Kab.</Th>
+            <Th k="kecamatan" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Kec.</Th>
+            <Th k="toko" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Toko</Th>
+            <Th k="adm" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>ADM</Th>
+            <Th k="kelasToko" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Kelas</Th>
+            <Th k="aktual" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Akt {MONTH_SHORT[monthIdx]}</Th>
+            <Th k="selisih" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>
               {monthIdx > 0 ? `Δ ${MONTH_SHORT[monthIdx - 1]}` : "Δ"}
             </Th>
-            <Th k="omsetYtd" sortKey={sortKey} dir={dir} onSort={onSort} right>Omset YTD</Th>
-            <Th k="kontrib" sortKey={sortKey} dir={dir} onSort={onSort} right>Kontr%</Th>
-            <Th k="avg" sortKey={sortKey} dir={dir} onSort={onSort} right>Avg</Th>
-            <Th k="bulanPasif" sortKey={sortKey} dir={dir} onSort={onSort}>Pasif</Th>
-            <Th k="targetToko" sortKey={sortKey} dir={dir} onSort={onSort} right>Target</Th>
-            <Th k="hilang" sortKey={sortKey} dir={dir} onSort={onSort} right>Hilang</Th>
-            <Th k="status" sortKey={sortKey} dir={dir} onSort={onSort}>Status</Th>
-            <Th k="pcp" sortKey={sortKey} dir={dir} onSort={onSort} right>PCP%</Th>
+            <Th k="omsetYtd" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Omset YTD</Th>
+            <Th k="kontrib" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Kontr%</Th>
+            <Th k="avg" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Avg</Th>
+            <Th k="bulanPasif" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Pasif</Th>
+            <Th k="targetToko" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Target</Th>
+            <Th k="hilang" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>Hilang</Th>
+            <Th k="status" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad}>Status</Th>
+            <Th k="pcp" sortKey={sortKey} dir={dir} onSort={onSort} pad={LEVEL.pad} right>PCP%</Th>
           </tr>
         </thead>
         <tbody>
@@ -178,7 +180,7 @@ export default function DapTable({
                 <td className={`${td} font-medium text-indigo-300`} title={r.area}>{r.area}</td>
                 <td className={td} title={r.kabupaten}>{r.kabupaten}</td>
                 <td className={td} title={r.kecamatan}>{r.kecamatan}</td>
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className={`whitespace-nowrap ${LEVEL.pad} py-1.5`}>
                   <div className="flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KATEGORI[r.kat].color }}
                       title={`${KATEGORI[r.kat].label} — ${KATEGORI[r.kat].desc}`} />
@@ -209,7 +211,7 @@ export default function DapTable({
                 <td className={`${td} text-right ${r.hilang > 0 ? "font-semibold text-rose-300" : "text-slate-500"}`}>
                   {r.hilang > 0 ? uang(r.hilang) : "—"}
                 </td>
-                <td className="whitespace-nowrap px-3 py-1.5">
+                <td className={`whitespace-nowrap ${LEVEL.pad} py-1.5`}>
                   <span className="block rounded-full px-2.5 py-0.5 text-center text-[0.8rem]" style={{ color: sc.color, background: sc.bg + "66" }} title={r.status}>
                     {r.status}
                   </span>
