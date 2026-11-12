@@ -105,7 +105,7 @@ export default function Sidebar() {
     : [{ key: "beranda", href: "/", label: "Beranda" }];
 
   const btn =
-    "group relative flex h-11 w-full items-center gap-3 rounded-2xl px-[0.8rem] text-slate-400 transition-colors duration-200 hover:text-sky-200";
+    "group relative flex h-11 w-full items-center gap-3 rounded-2xl px-[0.9rem] text-slate-400 transition-colors duration-200 hover:text-sky-200";
 
   return (
     <>
@@ -113,14 +113,14 @@ export default function Sidebar() {
       <motion.aside
         ref={asideRef}
         initial={false}
-        animate={{ width: open ? 232 : 76 }}
+        animate={{ width: open ? "14.5rem" : "4.75rem" }}
         transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         className="glass-sidebar fixed bottom-4 left-4 top-4 z-50 hidden flex-col overflow-hidden rounded-[1.75rem] p-3 sm:flex"
         aria-label="Navigasi utama"
       >
         {/* Logo */}
         <Link href="/" title="Kembali ke Beranda"
-          className="relative mb-4 flex h-12 shrink-0 items-center gap-3 rounded-2xl px-[0.35rem] outline-none">
+          className="relative mb-4 flex h-12 shrink-0 items-center gap-3 rounded-2xl px-[0.32rem] outline-none">
           <span className="logo-orb flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="h-5 w-5">
               <line x1="5" y1="20" x2="5" y2="12.5" /><line x1="12" y1="20" x2="12" y2="6" /><line x1="19" y1="20" x2="19" y2="10" />
