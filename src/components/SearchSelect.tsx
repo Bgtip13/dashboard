@@ -1,13 +1,19 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface SearchItem { value: string; label: string }
 
 const MAX_TAMPIL = 150; // daftar sangat panjang (mis. ratusan toko) cukup dirender sebagian, sisanya lewat pencarian
+const LEBAR = 288;      // lebar panel dropdown (px)
+const TINGGI_PANEL = 380;
+
+type Posisi = { left: number; top?: number; bottom?: number; maxList: number };
 
 /**
  * Pengganti <select> dengan kotak cari di dalamnya.
- * Klik → muncul daftar + search bar; ketik untuk menyaring; ↑ ↓ Enter Esc untuk keyboard.
+ * Panel dirender lewat portal ke <body> (position: fixed, latar solid) supaya tidak pernah
+ * tertimpa/tembus kartu lain di bawahnya, apa pun stacking context induknya.
  */
 export default function SearchSelect({ value, onChange, items, placeholder = "Cari…", ariaLabel, className = "" }: {
   value: string;
@@ -20,7 +26,10 @@ export default function SearchSelect({ value, onChange, items, placeholder = "Ca
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [aktif, setAktif] = useState(0);
+  const [pos, setPos] = useState<Posisi | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
+  const tombol = useRef<HTMLButtonElement | null>(null);
+  const panel = useRef<HTMLDivElement | null>(null);
   const aktifEl = useRef<HTMLLIElement | null>(null);
 
   const terpilih = items.find((i) => i.value === value);
@@ -35,11 +44,41 @@ export default function SearchSelect({ value, onChange, items, placeholder = "Ca
   }, [items, q]);
   const tampil = hasil.slice(0, MAX_TAMPIL);
 
-  // tutup bila klik di luar
+  /** Hitung posisi panel dari tombol; buka ke atas bila ruang di bawah tidak cukup. */
+  const hitungPosisi = useCallback(() => {
+    const el = tombol.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const lebar = Math.min(LEBAR, vw - 16);
+    const left = Math.max(8, Math.min(r.left, vw - lebar - 8));
+    const ruangBawah = vh - r.bottom - 12;
+    const ruangAtas = r.top - 12;
+    if (ruangBawah < TINGGI_PANEL && ruangAtas > ruangBawah) {
+      setPos({ left, bottom: vh - r.top + 8, maxList: Math.max(160, Math.min(288, ruangAtas - 70)) });
+    } else {
+      setPos({ left, top: r.bottom + 8, maxList: Math.max(160, Math.min(288, ruangBawah - 70)) });
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    hitungPosisi();
+    window.addEventListener("resize", hitungPosisi);
+    window.addEventListener("scroll", hitungPosisi, true);
+    return () => {
+      window.removeEventListener("resize", hitungPosisi);
+      window.removeEventListener("scroll", hitungPosisi, true);
+    };
+  }, [open, hitungPosisi]);
+
+  // tutup bila klik di luar (tombol maupun panel portal)
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (root.current?.contains(t) || panel.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
@@ -57,32 +96,35 @@ export default function SearchSelect({ value, onChange, items, placeholder = "Ca
   function pilih(v: string) {
     onChange(v);
     setOpen(false);
+    tombol.current?.focus();
   }
 
   function onKey(e: React.KeyboardEvent) {
     if (e.key === "ArrowDown") { e.preventDefault(); setAktif((a) => Math.min(a + 1, tampil.length - 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setAktif((a) => Math.max(a - 1, 0)); }
     else if (e.key === "Enter") { e.preventDefault(); if (tampil[aktif]) pilih(tampil[aktif].value); }
-    else if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+    else if (e.key === "Escape") { e.preventDefault(); setOpen(false); tombol.current?.focus(); }
   }
 
   return (
     <div ref={root} className="relative">
-      <button type="button" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open}
+      <button ref={tombol} type="button" aria-label={ariaLabel} aria-haspopup="listbox" aria-expanded={open}
         onClick={() => (open ? setOpen(false) : buka())}
         className={`flex h-11 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-left text-base text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 ${className}`}>
         <span className="truncate">{terpilih?.label ?? value}</span>
         <span aria-hidden className={`shrink-0 text-xs text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
 
-      {open && (
-        <div className="absolute left-0 top-full z-40 mt-2 w-72 max-w-[85vw] overflow-hidden rounded-xl border border-white/10 bg-[var(--panel-bg)] shadow-2xl">
+      {open && pos && typeof document !== "undefined" && createPortal(
+        <div ref={panel}
+          className="pop-panel fixed z-[200] overflow-hidden rounded-xl border border-white/10 shadow-2xl"
+          style={{ left: pos.left, top: pos.top, bottom: pos.bottom, width: Math.min(LEBAR, window.innerWidth - 16) }}>
           <div className="border-b border-white/10 p-2">
             <input autoFocus value={q} placeholder={placeholder} aria-label={placeholder}
               onChange={(e) => { setQ(e.target.value); setAktif(0); }} onKeyDown={onKey}
               className="h-10 w-full rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-slate-200 outline-none placeholder:text-slate-500 focus:border-indigo-400/60" />
           </div>
-          <ul role="listbox" className="max-h-72 overflow-y-auto py-1">
+          <ul role="listbox" className="overflow-y-auto py-1" style={{ maxHeight: pos.maxList }}>
             {tampil.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-500">Tidak ada yang cocok.</li>}
             {tampil.map((it, i) => {
               const sel = it.value === value;
@@ -100,7 +142,8 @@ export default function SearchSelect({ value, onChange, items, placeholder = "Ca
               Menampilkan {MAX_TAMPIL} dari {hasil.length.toLocaleString("id-ID")} — ketik untuk mempersempit.
             </p>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

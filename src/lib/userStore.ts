@@ -146,11 +146,33 @@ export function cekTabs(input: unknown): string[] {
 }
 
 /* ---------- operasi ---------- */
-async function findRow(id: string): Promise<User | null> {
-  await ensureAdmin();
-  const { data, error } = await db().from(TABLE).select("*").eq("id", id.trim().toLowerCase()).maybeSingle();
+// Cache singkat per-instance: tiap pindah tab server memeriksa sesi (currentUser) dan sidebar
+// memanggil /api/auth/me berkala — tanpa cache, semuanya menunggu Supabase. Diinvalidasi saat
+// user diubah/dihapus; instance lain paling lambat menyusul setelah TTL.
+const CACHE_TTL = 15_000;
+const cache = new Map<string, { user: User | null; exp: number }>();
+const cacheKey = (id: string) => id.trim().toLowerCase();
+
+async function selectRow(id: string): Promise<User | null> {
+  const { data, error } = await db().from(TABLE).select("*").eq("id", id).maybeSingle();
   if (error) fail("Gagal membaca user", error);
   return data ? toUser(data as Row) : null;
+}
+
+async function findRow(id: string): Promise<User | null> {
+  const key = cacheKey(id);
+  const hit = cache.get(key);
+  if (hit && hit.exp > Date.now() && hit.user) return hit.user;
+
+  // Langsung cari user (1 permintaan). Pengecekan/pembuatan akun utama hanya perlu
+  // bila yang dicari memang akun utama dan belum ada.
+  let user = await selectRow(key);
+  if (!user && key === MAIN_ID) {
+    await ensureAdmin();
+    user = await selectRow(key);
+  }
+  if (user) cache.set(key, { user, exp: Date.now() + CACHE_TTL });
+  return user;
 }
 
 export async function listUsers(): Promise<PublicUser[]> {
@@ -222,6 +244,7 @@ export async function updateUser(
     .update({ nama: next.nama, hash: next.hash, ver: next.ver, ...kolom })
     .eq("id", cur.id);
   if (error) fail("Gagal memperbarui user", error);
+  cache.delete(cacheKey(cur.id));
   return toPublic(next);
 }
 
@@ -233,4 +256,5 @@ export async function removeUser(id: string): Promise<void> {
 
   const { error } = await db().from(TABLE).delete().eq("id", target);
   if (error) fail("Gagal menghapus user", error);
+  cache.delete(cacheKey(target));
 }

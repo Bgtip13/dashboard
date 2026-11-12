@@ -43,7 +43,7 @@ async function getCsvText(namaTab: string): Promise<Ambil> {
     } catch {
       status = "koneksi/akses ditolak";
     }
-    await new Promise((r) => setTimeout(r, 600)); // coba sekali lagi
+    await new Promise((r) => setTimeout(r, 300)); // coba sekali lagi
   }
   return { text: null, status };
 }
@@ -85,8 +85,14 @@ export async function fetchProdukSemuaBulan(): Promise<ProdukSemua> {
   if (!SHEET_ID) throw new Error("NEXT_PUBLIC_SHEET_PRODUK_ID belum diisi (ID spreadsheet)");
   const now = new Date();
   const tahun = now.getFullYear();
-  const palsu = await getCsvText("__tab_tidak_ada__");
-  const hasil = await paralel(NAMA_BULAN, 3, getCsvText);
+  // Bulan yang belum tiba tidak perlu diminta ke Google (hemat permintaan & waktu tunggu).
+  // Sidik jari + semua bulan berjalan diambil BERSAMAAN, bukan berurutan.
+  const bulanDiminta = NAMA_BULAN.slice(0, now.getMonth() + 1);
+  const [palsu, hasilAda] = await Promise.all([
+    getCsvText("__tab_tidak_ada__"),
+    paralel(bulanDiminta, 6, getCsvText),
+  ]);
+  const hasil: Ambil[] = NAMA_BULAN.map((_, i) => hasilAda[i] ?? { text: null, status: "belum tiba" });
 
   const bulan: ProdukBulanData[] = [];
   const catatan: string[] = [];

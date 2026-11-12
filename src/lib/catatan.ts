@@ -119,7 +119,9 @@ export function langganan(cb: () => void): () => void {
 
 /** Simpan daftar terbaru (HTML dibersihkan) lalu beri tahu pelanggan store. */
 export function tulisCatatan(list: Catatan[]): void {
-  const bersih = list.map((c) => ({ ...c, isi: bersihkanHtml(c.isi) }));
+  // DOMParser mahal: bersihkan hanya catatan yang isinya berubah dari snapshot sebelumnya
+  const lama = new Map((cache ?? []).map((c) => [c.id, c.isi]));
+  const bersih = list.map((c) => (lama.get(c.id) === c.isi ? c : { ...c, isi: bersihkanHtml(c.isi) }));
   cache = bersih;
   simpanCatatan(bersih);
   pendengar.forEach((l) => l());

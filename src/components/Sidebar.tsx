@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "@/app/providers";
 import UbahPassword from "./UbahPassword";
@@ -21,6 +21,8 @@ const ICONS: Record<string, React.ReactNode> = {
   kunci: (<><circle cx="8" cy="15" r="4" /><path d="M10.8 12.2 20 3M16.5 6.5 19 9M13.5 9.5l2 2" /></>),
   matahari: (<><circle cx="12" cy="12" r="4" /><path d="M12 2.8V5M12 19v2.2M2.8 12H5M19 12h2.2M5.5 5.5 7 7M17 17l1.5 1.5M18.5 5.5 17 7M7 17l-1.5 1.5" /></>),
   bulan: <path d="M20 13.6A8.1 8.1 0 0 1 10.4 4 7.6 7.6 0 1 0 20 13.6Z" />,
+  menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  tutup: <path d="M15 5l-7 7 7 7" />,
   keluar: <path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 8l-4 4 4 4M6 12h10" />,
 };
 
@@ -35,13 +37,46 @@ function Ico({ name, className = "h-[1.35rem] w-[1.35rem]" }: { name: string; cl
 
 interface Item { key: string; href: string; label: string }
 
+/** Teks menu: muncul hanya saat sidebar terbuka. */
+function Label({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.span
+          initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
+          transition={{ duration: 0.16 }}
+          className="relative whitespace-nowrap text-[0.95rem] font-medium">
+          {children}
+        </motion.span>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const qc = useQueryClient();
   const { isDark, toggle } = useTheme();
   const [ubahPw, setUbahPw] = useState(false);
-  const [hover, setHover] = useState(false);
+  // Buka/tutup hanya lewat klik (tombol menu), tidak lagi terpengaruh posisi kursor
+  const [open, setOpen] = useState(false);
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  // Klik di luar sidebar atau tekan Esc → menutup
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   // Dicek berkala (interval bawaan 30 dtk): user yang dihapus / password-nya diganti otomatis keluar
   const { data: me, error } = useQuery({ queryKey: ["me"], retry: false, queryFn: fetchMe });
@@ -72,27 +107,14 @@ export default function Sidebar() {
   const btn =
     "group relative flex h-11 w-full items-center gap-3 rounded-2xl px-[0.8rem] text-slate-400 transition-colors duration-200 hover:text-sky-200";
 
-  const Label = ({ children }: { children: React.ReactNode }) => (
-    <AnimatePresence>
-      {hover && (
-        <motion.span
-          initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
-          transition={{ duration: 0.16 }}
-          className="relative whitespace-nowrap text-[0.95rem] font-medium">
-          {children}
-        </motion.span>
-      )}
-    </AnimatePresence>
-  );
-
   return (
     <>
       {/* ===== Desktop / tablet: rel ikon di kiri ===== */}
       <motion.aside
-        onHoverStart={() => setHover(true)} onHoverEnd={() => setHover(false)}
-        onFocusCapture={() => setHover(true)} onBlurCapture={() => setHover(false)}
-        animate={{ width: hover ? 232 : 76 }}
-        transition={{ type: "spring", stiffness: 340, damping: 32 }}
+        ref={asideRef}
+        initial={false}
+        animate={{ width: open ? 232 : 76 }}
+        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         className="glass-sidebar fixed bottom-4 left-4 top-4 z-50 hidden flex-col overflow-hidden rounded-[1.75rem] p-3 sm:flex"
         aria-label="Navigasi utama"
       >
@@ -105,7 +127,7 @@ export default function Sidebar() {
             </svg>
           </span>
           <AnimatePresence>
-            {hover && (
+            {open && (
               <motion.span initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -6 }}
                 transition={{ duration: 0.16 }} className="whitespace-nowrap leading-tight">
                 <b className="block text-[1.05rem] tracking-tight">PCP</b>
@@ -117,12 +139,21 @@ export default function Sidebar() {
 
         <div className="mx-2 mb-3 h-px bg-gradient-to-r from-transparent via-sky-400/30 to-transparent" />
 
+        {/* Tombol buka / tutup menu */}
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+          aria-label={open ? "Tutup menu" : "Buka menu"} title={open ? "Tutup menu" : "Buka menu"}
+          className={`${btn} mb-1.5`}>
+          <span className="absolute inset-0 rounded-2xl bg-sky-400/0 transition-colors duration-200 group-hover:bg-sky-400/10" />
+          <span className="relative"><Ico name={open ? "tutup" : "menu"} /></span>
+          <Label open={open}>{open ? "Tutup menu" : "Menu"}</Label>
+        </button>
+
         {/* Menu utama */}
         <nav className="flex flex-1 flex-col gap-1.5 overflow-y-auto overflow-x-hidden">
           {items.map((t) => {
             const active = pathname === t.href;
             return (
-              <Link key={t.key} href={t.href} title={t.label} aria-current={active ? "page" : undefined}
+              <Link key={t.key} href={t.href} title={open ? undefined : t.label} aria-current={active ? "page" : undefined}
                 className={`${btn} ${active ? "!text-sky-100" : ""}`}>
                 {active && (
                   <motion.span layoutId="side-pill" transition={{ type: "spring", stiffness: 420, damping: 34 }}
@@ -132,7 +163,7 @@ export default function Sidebar() {
                   <span className="absolute inset-0 rounded-2xl bg-sky-400/0 transition-colors duration-200 group-hover:bg-sky-400/10" />
                 )}
                 <span className="relative transition-transform duration-200 group-hover:scale-110"><Ico name={t.key} /></span>
-                <Label>{t.label}</Label>
+                <Label open={open}>{t.label}</Label>
               </Link>
             );
           })}
@@ -146,18 +177,18 @@ export default function Sidebar() {
             <button onClick={() => setUbahPw(true)} title={`Ubah password (ID: ${me.user.id})`} className={btn}>
               <span className="absolute inset-0 rounded-2xl bg-sky-400/0 transition-colors group-hover:bg-sky-400/10" />
               <span className="relative"><Ico name="kunci" /></span>
-              <Label><span className="block max-w-32 truncate">{me.user.nama}</span></Label>
+              <Label open={open}><span className="block max-w-32 truncate">{me.user.nama}</span></Label>
             </button>
           )}
           <button onClick={toggle} title="Ganti tema (tersimpan otomatis)" aria-pressed={!isDark} className={btn}>
             <span className="absolute inset-0 rounded-2xl bg-sky-400/0 transition-colors group-hover:bg-sky-400/10" />
             <span className="relative transition-transform duration-300 group-hover:rotate-12"><Ico name={isDark ? "matahari" : "bulan"} /></span>
-            <Label>{isDark ? "Mode Terang" : "Mode Gelap"}</Label>
+            <Label open={open}>{isDark ? "Mode Terang" : "Mode Gelap"}</Label>
           </button>
           <button onClick={keluar} title="Keluar" className={`${btn} hover:!text-rose-300`}>
             <span className="absolute inset-0 rounded-2xl bg-rose-400/0 transition-colors group-hover:bg-rose-400/10" />
             <span className="relative"><Ico name="keluar" /></span>
-            <Label>Keluar</Label>
+            <Label open={open}>Keluar</Label>
           </button>
         </div>
       </motion.aside>

@@ -3,7 +3,8 @@ import * as echarts from "echarts";
 import type { EChartsOption } from "echarts";
 import { useECharts } from "@/hooks/useECharts";
 import { useTheme } from "@/app/providers";
-import { rpShort } from "@/lib/utils";
+import { rp, rpShort } from "@/lib/utils";
+import { useEffect, useRef, useState } from "react";
 import BrandLogo from "@/components/BrandLogo";
 
 /** value = panjang batang (qty atau penjualan, sesuai urutan); qty & penjualan selalu terisi untuk label/tooltip */
@@ -16,18 +17,26 @@ export interface ProdukChartConfig {
 // Geometri (px) — overlay HTML harus cocok persis dengan grid ECharts
 const GRID = { left: 8, right: 8, top: 4, bottom: 0 };
 const LOGO_COL = 30;  // kolom logo
-const NAME_COL = 240; // kolom nama produk
-const AXIS_X = GRID.left + LOGO_COL + NAME_COL; // posisi sumbu-Y (batang mulai di sini)
 const CHART_H = 440;  // tinggi chart (px), harus sama dengan style container
 
-function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
+/** Ukuran adaptif: makin lebar halaman → kolom nama makin lebar & angka ditulis lengkap (tidak disingkat). */
+interface Layout { nameCol: number; axisX: number; right: number; full: boolean }
+function layoutDari(w: number): Layout {
+  const full = w >= 820;                                    // cukup lebar → "Rp91.612.345", bukan "Rp91,6 jt"
+  const right = full ? 215 : 150;                           // ruang label di ujung batang
+  const nameCol = Math.round(Math.min(520, Math.max(200, w * 0.32)));
+  return { nameCol, axisX: GRID.left + LOGO_COL + nameCol, right, full };
+}
+
+function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOption {
+  const uang = L.full ? rp : rpShort;
   const txt = isDark ? "#94a3b8" : "#475569";
   const gridLine = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.08)";
   const fmt = (v: number) => (cfg.metric === "penjualan" ? rpShort(v) : v.toLocaleString("id-ID"));
   const qtyTxt = (v: number) => `${v.toLocaleString("id-ID")} qty`;
   // Label di ujung batang: metrik utama dulu, lalu yang satunya
   const labelTxt = (it?: ProdukChartItem) =>
-    !it ? "" : cfg.metric === "qty" ? `${qtyTxt(it.qty)} · ${rpShort(it.penjualan)}` : `${rpShort(it.penjualan)} · ${qtyTxt(it.qty)}`;
+    !it ? "" : cfg.metric === "qty" ? `${qtyTxt(it.qty)} · ${uang(it.penjualan)}` : `${uang(it.penjualan)} · ${qtyTxt(it.qty)}`;
   const maxV = Math.max(...cfg.items.map((i) => i.value), 0);
 
   return {
@@ -39,13 +48,13 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
         const it = cfg.items[p.dataIndex];
         if (!it) return "";
         const esc = it.name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-        return `<b>${esc}</b><br/>Penjualan: <b>${rpShort(it.penjualan)}</b><br/>Qty: <b>${it.qty.toLocaleString("id-ID")}</b>`;
+        return `<b>${esc}</b><br/>Penjualan: <b>${rp(it.penjualan)}</b><br/>Qty: <b>${it.qty.toLocaleString("id-ID")}</b>`;
       },
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 13 },
     },
-    grid: { left: AXIS_X, right: 150, top: GRID.top, bottom: GRID.bottom, containLabel: false },
+    grid: { left: L.axisX, right: L.right, top: GRID.top, bottom: GRID.bottom, containLabel: false },
     xAxis: {
       type: "value",
       max: maxV > 0 ? Math.ceil(maxV * 1.2) : undefined, // skala rapat
@@ -83,7 +92,19 @@ function option(cfg: ProdukChartConfig, isDark: boolean): EChartsOption {
 
 export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
   const { isDark } = useTheme();
-  const ref = useECharts(option(config, isDark), [config, isDark]);
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const [w, setW] = useState(1100);
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    setW(el.clientWidth || 1100);
+    const ro = new ResizeObserver(([e]) => setW(Math.round(e.contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  // dibulatkan per 20px supaya chart tidak digambar ulang di setiap piksel saat jendela digeser
+  const L = layoutDari(Math.round(w / 20) * 20);
+  const ref = useECharts(option(config, isDark, L), [config, isDark, L.nameCol, L.right, L.full]);
 
   // Baris ke-i (0 = batang paling bawah) → posisi tengahnya dari atas:
   const n = Math.max(config.items.length, 1);
@@ -91,7 +112,7 @@ export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
   const nameColor = isDark ? "#cbd5e1" : "#334155";
 
   return (
-    <div className="relative w-full" style={{ height: CHART_H }}>
+    <div ref={wrap} className="relative w-full" style={{ height: CHART_H }}>
       <div ref={ref} className="h-full w-full" />
 
       {/* Overlay: kolom logo + nama, rata kiri semua */}
@@ -105,7 +126,7 @@ export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
               style={{ top, left: GRID.left, transform: "translateY(-50%)" }}>
               <BrandLogo brand={it.brand} size={24} />
               <span className="truncate text-sm font-medium"
-                style={{ color: nameColor, width: NAME_COL - 12 }}>
+                style={{ color: nameColor, width: L.nameCol - 12 }} title={it.name}>
                 {it.name}
               </span>
             </div>
