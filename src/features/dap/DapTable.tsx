@@ -1,7 +1,7 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DapRow } from "@/lib/types";
-import { rpShort } from "@/lib/utils";
+import { rp, rpShort } from "@/lib/utils";
 import { KATEGORI, isKerugian, kategori, type Kategori } from "@/lib/dapSegment";
 import { useTheme } from "@/app/providers";
 import { MONTH_SHORT } from "./DapChart";
@@ -28,7 +28,7 @@ function Th({ k, sortKey, dir, onSort, children, right = false }: {
 }) {
   const active = sortKey === k;
   return (
-    <th className={`px-2 py-2.5 ${right ? "text-right" : "text-left"}`}>
+    <th className={`whitespace-nowrap px-3 py-2.5 ${right ? "text-right" : "text-left"}`}>
       <button onClick={() => onSort(k)}
         className={`inline-flex items-center gap-0.5 uppercase transition-colors hover:text-indigo-300 ${active ? "text-indigo-300" : ""}`}>
         {children}
@@ -51,6 +51,23 @@ export default function DapTable({
   const [page, setPage] = useState(0);
   const [sortKey, setSortKey] = useState<string | null>(initialSort);
   const [dir, setDir] = useState<1 | -1>(initialDir);
+
+  // Angka ditulis LENGKAP (Rp1.234.567) selama tabel muat di lebar layar; kalau tidak muat → ringkas (Rp1,2 jt)
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const tabel = useRef<HTMLTableElement | null>(null);
+  const lebarPenuh = useRef(0);
+  const [ringkas, setRingkas] = useState(false);
+  const [cw, setCw] = useState(0);
+  const uang = ringkas ? rpShort : rp;
+
+  useLayoutEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    setCw(el.clientWidth);
+    const ro = new ResizeObserver(() => setCw(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const enriched: Enriched[] = useMemo(() => rows.map((r) => {
     const aktual = r.bulanan[monthIdx] ?? 0;
@@ -82,13 +99,29 @@ export default function DapTable({
   const p = Math.min(page, pageCount - 1);
   const view = sorted.slice(p * PAGE, p * PAGE + PAGE);
 
+  // Data/halaman/bulan berganti → coba tampilan lengkap dulu (diukur ulang di layout effect, sebelum tampil)
+  const sigData = `${p}|${sortKey}|${dir}|${monthIdx}|${sorted.length}`;
+  const [sigLama, setSigLama] = useState(sigData);
+  if (sigLama !== sigData) { setSigLama(sigData); setRingkas(false); }
+
+  useLayoutEffect(() => {
+    const t = tabel.current;
+    if (!t || cw === 0) return;
+    if (!ringkas) {
+      if (t.offsetWidth > cw + 1) { lebarPenuh.current = t.offsetWidth; setRingkas(true); }
+      else lebarPenuh.current = 0;
+    } else if (lebarPenuh.current && cw >= lebarPenuh.current) {
+      setRingkas(false);
+    }
+  }, [ringkas, cw, sigData, view]);
+
   const onSort = (k: string) => {
     if (sortKey === k) setDir((d) => (d === 1 ? -1 : 1));
     else { setSortKey(k); setDir(1); }
     setPage(0);
   };
 
-  const td = "truncate px-2 py-2";
+  const td = "whitespace-nowrap px-3 py-2";
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
@@ -106,19 +139,11 @@ export default function DapTable({
             className="rounded-lg border border-white/10 px-2 py-1 disabled:opacity-30 hover:bg-white/5">Next ▶</button>
         </div>
       </div>
-      <div className="tbl-scroll">
-      <table className="w-full min-w-[1300px] table-fixed text-[0.8rem] leading-snug">
-        <colgroup>
-          <col style={{ width: "2.2%" }} /><col style={{ width: "5.4%" }} /><col style={{ width: "6.6%" }} />
-          <col style={{ width: "10.4%" }} /><col style={{ width: "13.4%" }} /><col style={{ width: "4.6%" }} />
-          <col style={{ width: "6.2%" }} /><col style={{ width: "6.2%" }} /><col style={{ width: "5.4%" }} />
-          <col style={{ width: "6%" }} /><col style={{ width: "4.2%" }} /><col style={{ width: "4%" }} />
-          <col style={{ width: "4.6%" }} /><col style={{ width: "5.4%" }} /><col style={{ width: "5.4%" }} />
-          <col style={{ width: "6.2%" }} /><col style={{ width: "3.8%" }} />
-        </colgroup>
+      <div ref={wrap} className="tbl-scroll">
+      <table ref={tabel} className="w-max min-w-full text-[0.85rem] leading-snug">
         <thead>
           <tr className="border-b border-white/10 bg-white/5 text-[0.75rem] text-slate-400">
-            <th className="px-2 py-2.5 text-left">NO</th>
+            <th className="px-3 py-2.5 text-left">NO</th>
             <Th k="area" sortKey={sortKey} dir={dir} onSort={onSort}>Area</Th>
             <Th k="kabupaten" sortKey={sortKey} dir={dir} onSort={onSort}>Kab.</Th>
             <Th k="kecamatan" sortKey={sortKey} dir={dir} onSort={onSort}>Kec.</Th>
@@ -153,39 +178,39 @@ export default function DapTable({
                 <td className={`${td} font-medium text-indigo-300`} title={r.area}>{r.area}</td>
                 <td className={td} title={r.kabupaten}>{r.kabupaten}</td>
                 <td className={td} title={r.kecamatan}>{r.kecamatan}</td>
-                <td className="px-1.5 py-1.5">
+                <td className="whitespace-nowrap px-3 py-1.5">
                   <div className="flex items-center gap-1.5">
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: KATEGORI[r.kat].color }}
                       title={`${KATEGORI[r.kat].label} — ${KATEGORI[r.kat].desc}`} />
                     <button onClick={() => onSelect?.(r)} title={`${r.toko} — klik untuk grafik`}
-                      className={`block w-full truncate text-left font-medium hover:text-indigo-300 hover:underline ${isSel ? "text-indigo-300" : "text-slate-100"}`}>
+                      className={`block text-left font-medium hover:text-indigo-300 hover:underline ${isSel ? "text-indigo-300" : "text-slate-100"}`}>
                       {r.toko}
                     </button>
                   </div>
                 </td>
                 <td className={td} title={r.adm}>{r.adm}</td>
                 <td className={td} title={`${r.kelasToko} / ${r.kelasByr}`}>{r.kelasToko}{r.kelasByr ? `/${r.kelasByr}` : ""}</td>
-                <td className={`${td} text-right`}>{rpShort(r.aktual)}</td>
+                <td className={`${td} text-right`}>{uang(r.aktual)}</td>
                 <td className={`${td} text-right ${
                   r.selisih < 0 ? "font-semibold text-rose-300" : r.selisih > 0 ? "text-emerald-300" : "text-slate-500"
                 }`}
                   title={monthIdx > 0
-                    ? `Bulan lalu ${rpShort(r.sebelumnya)} → bulan ini ${rpShort(r.aktual)}`
+                    ? `Bulan lalu ${uang(r.sebelumnya)} → bulan ini ${uang(r.aktual)}`
                     : "Butuh bulan sebelumnya untuk dibandingkan"}>
                   {monthIdx === 0 || r.selisih === 0
                     ? "—"
-                    : `${r.selisih > 0 ? "+" : "−"}${rpShort(Math.abs(r.selisih))}`}
+                    : `${r.selisih > 0 ? "+" : "−"}${uang(Math.abs(r.selisih))}`}
                 </td>
-                <td className={`${td} text-right`}>{rpShort(r.omsetYtd)}</td>
+                <td className={`${td} text-right`}>{uang(r.omsetYtd)}</td>
                 <td className={`${td} text-right text-slate-300`}>{r.kontrib.toFixed(2)}%</td>
-                <td className={`${td} text-right text-slate-300`}>{rpShort(r.avg)}</td>
+                <td className={`${td} text-right text-slate-300`}>{uang(r.avg)}</td>
                 <td className={`${td} text-slate-400`}>{r.bulanPasif}</td>
-                <td className={`${td} text-right`}>{rpShort(r.targetToko)}</td>
+                <td className={`${td} text-right`}>{uang(r.targetToko)}</td>
                 <td className={`${td} text-right ${r.hilang > 0 ? "font-semibold text-rose-300" : "text-slate-500"}`}>
-                  {r.hilang > 0 ? rpShort(r.hilang) : "—"}
+                  {r.hilang > 0 ? uang(r.hilang) : "—"}
                 </td>
-                <td className="px-1 py-1.5">
-                  <span className="block truncate rounded-full px-1 py-0.5 text-center text-[0.75rem]" style={{ color: sc.color, background: sc.bg + "66" }} title={r.status}>
+                <td className="whitespace-nowrap px-3 py-1.5">
+                  <span className="block rounded-full px-2.5 py-0.5 text-center text-[0.8rem]" style={{ color: sc.color, background: sc.bg + "66" }} title={r.status}>
                     {r.status}
                   </span>
                 </td>
