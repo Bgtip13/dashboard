@@ -4,7 +4,7 @@ import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { rp } from "@/lib/utils";
-import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan } from "@/lib/produk";
+import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan, formatTanggal, rentangHari, tambahHari } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
@@ -69,7 +69,7 @@ type Delta = { dari: string; ke: string; persen: number | null } | null;
 /** Persentase naik/turun berwarna; null = tidak bisa dihitung */
 function Persen({ d }: { d: Delta }) {
   if (!d) return <span>–</span>;
-  if (d.persen === null) return <span>tidak bisa dihitung (bulan sebelumnya 0)</span>;
+  if (d.persen === null) return <span>tidak bisa dihitung (pembanding 0)</span>;
   return (
     <span className={d.persen >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-rose-300"}>
       {d.persen >= 0 ? "▲" : "▼"} {Math.abs(d.persen).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
@@ -89,6 +89,11 @@ function ProdukPageContent() {
     queryFn: fetchProdukSemuaBulan,
     refetchInterval: 120_000,
   });
+  // Filter rentang tanggal (YYYY-MM-DD); kosong = tanpa batas. Bila aktif, data diambil dari SEMUA bulan
+  // (rentang boleh melewati pergantian bulan) dan pilihan bulan diabaikan.
+  const [dari, setDari] = useState("");
+  const [sampai, setSampai] = useState("");
+  const periodeAktif = Boolean(dari || sampai);
   const bulanList = useMemo(() => (semua?.bulan ?? []).map((b) => b.label), [semua]);
   const [bulanPilih, setBulanPilih] = useState(() => (sp.get("bulan") ?? "").trim());
 
@@ -102,11 +107,11 @@ function ProdukPageContent() {
 
   const data = useMemo(() => {
     if (!semua || !bulanEff) return undefined;
-    const rows = bulanEff === SEMUA_BULAN
+    const rows = bulanEff === SEMUA_BULAN || periodeAktif
       ? semua.bulan.flatMap((b) => b.rows)
       : semua.bulan.find((b) => b.label === bulanEff)?.rows ?? [];
     return { updatedAt: semua.updatedAt, rows };
-  }, [semua, bulanEff]);
+  }, [semua, bulanEff, periodeAktif]);
 
   // Asisten AI membaca cache ["produk"] → isi dengan data bulan yang sedang tampil
   useEffect(() => {
@@ -131,6 +136,17 @@ function ProdukPageContent() {
   const kategoris = useMemo(() => uniqSorted(rows.map((r) => r.kategori)), [rows]);
   const brands = useMemo(() => uniqSorted(rows.map((r) => r.brand)), [rows]);
 
+  // Tanggal paling awal / akhir di seluruh tab (batas kalender & batas bawaan grafik harian)
+  const [tglMin, tglMax] = useMemo(() => {
+    let lo = "", hi = "";
+    for (const b of semua?.bulan ?? []) for (const r of b.rows) {
+      if (!r.tanggal) continue;
+      if (!lo || r.tanggal < lo) lo = r.tanggal;
+      if (!hi || r.tanggal > hi) hi = r.tanggal;
+    }
+    return [lo, hi];
+  }, [semua]);
+
   // Filter yang tidak ada di data (mis. sisa perintah asisten) otomatis dianggap "ALL"
   const areaEff = area !== "ALL" && areas.length > 0 && !areas.includes(area) ? "ALL" : area;
   const kategoriEff = kategori !== "ALL" && kategoris.length > 0 && !kategoris.includes(kategori) ? "ALL" : kategori;
@@ -151,15 +167,21 @@ function ProdukPageContent() {
       if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) return false;
       if (brandEff !== "ALL" && r.brand !== brandEff) return false;
       if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) return false;
+      if (dari || sampai) {
+        // baris tanpa tanggal tidak ikut saat filter tanggal aktif
+        if (!r.tanggal) return false;
+        if (dari && r.tanggal < dari) return false;
+        if (sampai && r.tanggal > sampai) return false;
+      }
       if (terms.length === 0) return true;
       const hay = `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten} ${r.brand}`.toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
-  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cariTunda]);
+  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cariTunda, dari, sampai]);
 
   // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
   // supaya tidak memicu render berantai lewat effect).
-  const filterKey = `${bulanEff}|${areaEff}|${kategoriEff}|${brandEff}|${tokoEff}|${cari}|${urut}`;
+  const filterKey = `${bulanEff}|${areaEff}|${kategoriEff}|${brandEff}|${tokoEff}|${cari}|${urut}|${dari}|${sampai}`;
   const [lastFilterKey, setLastFilterKey] = useState(filterKey);
   if (lastFilterKey !== filterKey) {
     setLastFilterKey(filterKey);
@@ -250,6 +272,54 @@ function ProdukPageContent() {
     return { config, saran, jumlahBarang: cocok.size, delta, deltaDual };
   }, [semua, areaEff, kategoriEff, brandEff, tokoEff, urut, trenCari]);
 
+  // Tren PER HARI pada rentang tanggal terpilih (tambahan; tren bulanan di atas tidak berubah).
+  // Memakai semua tab bulan, jadi rentang boleh melewati pergantian bulan. Ikut filter Area/Kategori/Brand/Toko
+  // dan kotak produk/brand tren. Hari tanpa transaksi = 0. Dibandingkan dengan periode sebelumnya yang sama panjang.
+  const trenHarian = useMemo(() => {
+    if (!periodeAktif || !semua) return null;
+    const awal = dari || tglMin, akhir = sampai || tglMax;
+    if (!awal || !akhir || awal > akhir) return null;
+    const metric: "penjualan" | "qty" = urut.startsWith("qty") ? "qty" : "penjualan";
+    const terms = trenCari.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const hari = rentangHari(awal, akhir);
+    const idx = new Map(hari.map((t, i) => [t, i]));
+    const rpH: number[] = Array(hari.length).fill(0), qtyH: number[] = Array(hari.length).fill(0);
+    const pAkhir = tambahHari(awal, -1), pAwal = tambahHari(awal, -hari.length);
+    let pRp = 0, pQty = 0, pAda = false;
+    const cocok = new Set<string>();
+    for (const b of semua.bulan) for (const r of b.rows) {
+      if (!r.tanggal) continue;
+      if (areaEff !== "ALL" && r.area !== areaEff) continue;
+      if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) continue;
+      if (brandEff !== "ALL" && r.brand !== brandEff) continue;
+      if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) continue;
+      if (terms.length > 0) {
+        const hay = `${r.barang} ${r.brand}`.toLowerCase();
+        if (!terms.every((t) => hay.includes(t))) continue;
+      }
+      const i = idx.get(r.tanggal);
+      if (i !== undefined) { rpH[i] += r.penjualan; qtyH[i] += r.qty; cocok.add(r.barang); }
+      else if (r.tanggal >= pAwal && r.tanggal <= pAkhir) { pRp += r.penjualan; pQty += r.qty; pAda = true; }
+    }
+    const lintasTahun = awal.slice(0, 4) !== akhir.slice(0, 4);
+    const labels = hari.map((t) => `${+t.slice(8)} ${NAMA_BULAN[+t.slice(5, 7) - 1].slice(0, 3)}${lintasTahun ? ` ${t.slice(2, 4)}` : ""}`);
+    const dual = terms.length > 0;
+    const config: ProdukTrenConfig = {
+      labels, values: metric === "qty" ? qtyH : rpH, metric, harian: true,
+      ...(dual ? { dual: { penjualan: rpH, qty: qtyH } } : {}),
+    };
+    const sum = (a: number[]) => a.reduce((x, y) => x + y, 0);
+    const ket = `periode sebelumnya (${formatTanggal(pAwal)} s/d ${formatTanggal(pAkhir)})`;
+    const delta = (now: number, prev: number): Delta =>
+      pAda ? { dari: ket, ke: "periode ini", persen: prev === 0 ? null : ((now - prev) / Math.abs(prev)) * 100 } : null;
+    return {
+      config, awal, akhir, jumlahHari: hari.length, jumlahBarang: cocok.size, dual,
+      totalRp: sum(rpH), totalQty: sum(qtyH),
+      deltaRp: delta(sum(rpH), pRp), deltaQty: delta(sum(qtyH), pQty),
+      delta: delta(sum(metric === "qty" ? qtyH : rpH), metric === "qty" ? pQty : pRp),
+    };
+  }, [semua, periodeAktif, dari, sampai, tglMin, tglMax, urut, trenCari, areaEff, kategoriEff, brandEff, tokoEff]);
+
   // Item untuk filter ber-search bar
   const itemsBulan = useMemo<SearchItem[]>(() => [
     ...[...bulanList].reverse().map((l) => ({ value: l, label: l })),
@@ -284,7 +354,9 @@ function ProdukPageContent() {
         <div>
           <h1 className="text-3xl font-bold">
             Penjualan Produk
-            {bulanEff && <span className="ml-3 text-xl font-medium text-indigo-300">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}
+            {periodeAktif
+              ? <span className="ml-3 text-xl font-medium text-indigo-300">· {formatTanggal(dari || tglMin)} s/d {formatTanggal(sampai || tglMax)}</span>
+              : bulanEff && <span className="ml-3 text-xl font-medium text-indigo-300">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}
           </h1>
           <p className="text-sm text-slate-400">
             {isLoading || !data ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
@@ -317,6 +389,17 @@ function ProdukPageContent() {
           {brandEff !== "ALL" && <BrandLogo brand={brandEff} size={30} />}
         </span>
         <SearchSelect value={tokoEff} onChange={setToko} items={itemsToko} ariaLabel="Pilih toko" placeholder="Cari nama toko…" className="min-w-52" />
+        <span className="flex items-center gap-2 text-sm text-slate-400">
+          <input type="date" value={dari} min={tglMin || undefined} max={sampai || tglMax || undefined}
+            onChange={(e) => setDari(e.target.value)} aria-label="Dari tanggal" className={`${selectCls} [color-scheme:dark]`} />
+          s/d
+          <input type="date" value={sampai} min={dari || tglMin || undefined} max={tglMax || undefined}
+            onChange={(e) => setSampai(e.target.value)} aria-label="Sampai tanggal" className={`${selectCls} [color-scheme:dark]`} />
+          {(dari || sampai) && (
+            <button onClick={() => { setDari(""); setSampai(""); }}
+              className="rounded-full border border-white/10 px-3 py-2 transition-colors hover:bg-white/10">Reset</button>
+          )}
+        </span>
         <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
           <option value="pj-desc">Penjualan tertinggi</option>
           <option value="pj-asc">Penjualan terendah</option>
@@ -326,6 +409,13 @@ function ProdukPageContent() {
         <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari barang / pelanggan / kecamatan…"
           className="h-11 min-w-64 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
       </div>
+
+      {periodeAktif && (
+        <p className="-mt-4 text-sm text-slate-400">
+          Filter tanggal aktif: tabel, ringkasan, dan grafik per barang memakai data dari semua bulan pada rentang itu (pilihan bulan diabaikan).
+          Tren bulanan tetap menampilkan Jan–Des.
+        </p>
+      )}
 
       {/* Ringkasan */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -393,6 +483,44 @@ function ProdukPageContent() {
         </p>
       </div>
 
+      {/* Tren per hari — muncul bila filter tanggal dipakai */}
+      {trenHarian && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+            <Icn e="🗓️" className="h-4 w-4" />
+            Tren {trenHarian.dual ? "penjualan & qty" : trenHarian.config.metric === "qty" ? "qty" : "penjualan"} per hari —{" "}
+            <span className="text-indigo-300">
+              {formatTanggal(trenHarian.awal)} s/d {formatTanggal(trenHarian.akhir)} ({trenHarian.jumlahHari} hari)
+              {trenCari.trim() ? ` · ${trenHarian.jumlahBarang} barang cocok` : ""}
+            </span>
+          </p>
+          <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
+            <span>Total periode:</span>
+            <span>Penjualan <b className="text-emerald-300">{rp(trenHarian.totalRp)}</b></span>
+            <span>Qty <b className="text-slate-200">{trenHarian.totalQty.toLocaleString("id-ID")}</b></span>
+          </p>
+          {trenHarian.dual ? (
+            (trenHarian.deltaRp || trenHarian.deltaQty) && (
+              <p className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
+                <span>vs {trenHarian.deltaRp?.dari ?? trenHarian.deltaQty?.dari}:</span>
+                <span>Penjualan <Persen d={trenHarian.deltaRp} /></span>
+                <span>Qty <Persen d={trenHarian.deltaQty} /></span>
+              </p>
+            )
+          ) : trenHarian.delta && (
+            <p className="mb-2 text-sm text-slate-400">vs {trenHarian.delta.dari}: <Persen d={trenHarian.delta} /></p>
+          )}
+          {trenCari.trim() && trenHarian.jumlahBarang === 0 ? (
+            <p className="py-16 text-center text-slate-500">🔍 Tidak ada barang/brand yang cocok pada periode ini.</p>
+          ) : (
+            <ProdukTrenChart config={trenHarian.config} />
+          )}
+          <p className="mt-2 text-xs text-slate-500">
+            Memakai kotak produk/brand di tren bulanan dan filter Area / Kategori / Brand / Toko. Hari tanpa transaksi dihitung 0; baris tanpa tanggal tidak ikut.
+          </p>
+        </div>
+      )}
+
       {/* Tabel */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
@@ -406,16 +534,17 @@ function ProdukPageContent() {
                 <th className="px-4 py-3 font-semibold">Brand</th>
                 <th className="px-4 py-3 font-semibold">Nama Barang</th>
                 <th className="px-4 py-3 font-semibold">Pelanggan</th>
+                <th className="px-4 py-3 font-semibold">Tanggal</th>
                 <th className="px-4 py-3 text-right font-semibold">Qty</th>
                 <th className="px-4 py-3 text-right font-semibold">Penjualan</th>
               </tr>
             </thead>
             <tbody>
               {paged.length === 0 && (
-                <tr><td colSpan={9} className="px-4 py-10 text-center text-slate-500">🔍 Tidak ada data yang cocok.</td></tr>
+                <tr><td colSpan={10} className="px-4 py-10 text-center text-slate-500">🔍 Tidak ada data yang cocok.</td></tr>
               )}
               {paged.map((r, i) => (
-                <tr key={`${r.area}-${r.pelanggan}-${r.barang}-${i}`}
+                <tr key={`${r.tanggal}-${r.area}-${r.pelanggan}-${r.barang}-${i}`}
                   className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
                   <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
                   <td className="whitespace-nowrap px-4 py-3">{r.kabupaten}</td>
@@ -429,6 +558,7 @@ function ProdukPageContent() {
                   </td>
                   <td className="max-w-[clamp(16rem,34vw,60rem)] truncate px-4 py-3 font-medium" title={r.barang}>{r.barang}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-slate-300">{r.pelanggan}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-slate-300 tabular-nums">{r.tanggal ? formatTanggal(r.tanggal) : "–"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.qty.toLocaleString("id-ID")}</td>
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums ${r.penjualan < 0 ? "text-rose-300" : ""}`}>{rp(r.penjualan)}</td>
                 </tr>
