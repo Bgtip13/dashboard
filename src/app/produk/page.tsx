@@ -31,24 +31,6 @@ const AREA_STYLE: Record<string, string> = {
 };
 const areaStyle = (a: string) => AREA_STYLE[a] ?? "bg-white/10 text-slate-300";
 
-function Pills<T extends string>({ items, value, onChange, id }: {
-  items: readonly T[]; value: T; onChange: (v: T) => void; id: string;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1 rounded-full border border-white/10 bg-white/5 p-1">
-      {items.map((it) => (
-        <button key={it} onClick={() => onChange(it)} className="relative rounded-full px-5 py-2 text-base">
-          {value === it && (
-            <motion.span layoutId={id} transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="absolute inset-0 rounded-full bg-indigo-500/30 ring-1 ring-indigo-400/50" />
-          )}
-          <span className={`relative ${value === it ? "text-indigo-200" : "text-slate-400"}`}>{it}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 const selectCls =
   "h-11 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 [&>option]:bg-slate-900";
 
@@ -110,6 +92,13 @@ function ProdukPageContent() {
   const [dari, setDari] = useState("");
   const [sampai, setSampai] = useState("");
   const periodeAktif = Boolean(dari || sampai);
+  // Menu grafik: boleh membuka lebih dari satu; yang tampil hanya yang dipilih
+  const [grafikBuka, setGrafikBuka] = useState<ReadonlySet<string>>(() => new Set(["barang"]));
+  const toggleGrafik = (k: string) => setGrafikBuka((cur) => {
+    const n = new Set(cur);
+    if (n.has(k)) n.delete(k); else n.add(k);
+    return n;
+  });
   const bulanList = useMemo(() => (semua?.bulan ?? []).map((b) => b.label), [semua]);
   const [bulanPilih, setBulanPilih] = useState(() => (sp.get("bulan") ?? "").trim());
 
@@ -386,6 +375,7 @@ function ProdukPageContent() {
     ...[...bulanList].reverse().map((l) => ({ value: l, label: l })),
     ...(bulanList.length > 1 ? [{ value: SEMUA_BULAN, label: "Semua Bulan" }] : []),
   ], [bulanList]);
+  const itemsArea = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Area" }, ...areas.map((a) => ({ value: a, label: a }))], [areas]);
   const itemsKategori = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Kategori" }, ...kategoris.map((k) => ({ value: k, label: k }))], [kategoris]);
   const itemsBrand = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Brand" }, ...brands.map((b) => ({ value: b, label: b }))], [brands]);
   const itemsToko = useMemo<SearchItem[]>(() => [{ value: "ALL", label: "Semua Toko" }, ...tokos.map((t) => ({ value: t, label: t }))], [tokos]);
@@ -441,31 +431,33 @@ function ProdukPageContent() {
       )}
 
       {/* Filter */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <SearchSelect value={bulanEff} onChange={setBulanPilih} items={itemsBulan} ariaLabel="Pilih bulan" placeholder="Cari bulan…" className="min-w-44" />
-        <Pills items={["ALL", ...areas] as const} value={areaEff} onChange={setArea} id="p-area" />
+      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <SearchSelect value={bulanEff} onChange={setBulanPilih} items={itemsBulan} ariaLabel="Pilih bulan" placeholder="Cari bulan…" />
+        <SearchSelect value={areaEff} onChange={setArea} items={itemsArea} ariaLabel="Pilih area" placeholder="Cari area…" />
         <SearchSelect value={kategoriEff} onChange={setKategori} items={itemsKategori} ariaLabel="Pilih kategori" placeholder="Cari kategori…" />
-        <span className="flex items-center gap-2">
-          <SearchSelect value={brandEff} onChange={setBrand} items={itemsBrand} ariaLabel="Pilih brand" placeholder="Cari brand…" />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchSelect value={brandEff} onChange={setBrand} items={itemsBrand} ariaLabel="Pilih brand" placeholder="Cari brand…" />
+          </div>
           {brandEff !== "ALL" && <BrandLogo brand={brandEff} size={30} />}
-        </span>
-        <SearchSelect value={tokoEff} onChange={setToko} items={itemsToko} ariaLabel="Pilih toko" placeholder="Cari nama toko…" className="min-w-52" />
+        </div>
+        <SearchSelect value={tokoEff} onChange={setToko} items={itemsToko} ariaLabel="Pilih toko" placeholder="Cari nama toko…" />
         <DateRangePicker dari={dari} sampai={sampai} max={tglMax} adaData={tanggalAda}
           onChange={(a, b) => { setDari(a); setSampai(b); }} />
-        <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
+        <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={`${selectCls} w-full`}>
           <option value="pj-desc">Penjualan tertinggi</option>
           <option value="pj-asc">Penjualan terendah</option>
           <option value="qty-desc">Qty terbanyak</option>
           <option value="qty-asc">Qty tersedikit</option>
         </select>
         <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari barang / pelanggan / kecamatan…"
-          className="h-11 min-w-64 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60" />
+          className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-4 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60 sm:col-span-2 lg:col-span-3 2xl:col-span-2" />
       </div>
 
       {periodeAktif && (
         <p className="-mt-4 text-sm text-slate-400">
           Filter tanggal aktif: tabel, ringkasan, dan grafik per barang memakai data dari semua bulan pada rentang itu (pilihan bulan diabaikan).
-          Tren bulanan tetap menampilkan Jan–Des.
+          Tren bulanan tetap menampilkan Jan–Des. Buka menu Grafik → Tren per hari / Tren per produk untuk melihat tren periode ini.
         </p>
       )}
 
@@ -485,7 +477,34 @@ function ProdukPageContent() {
         </StatCard>
       </div>
 
+      {/* Menu grafik: klik untuk membuka / menutup, boleh lebih dari satu */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <span className="px-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Grafik</span>
+        {([
+          { k: "barang", icon: "📊", label: "Per barang", ok: true, hint: "" },
+          { k: "bulan", icon: "📈", label: "Tren bulanan", ok: true, hint: "" },
+          { k: "harian", icon: "🗓️", label: "Tren per hari", ok: Boolean(trenHarian), hint: "Pilih rentang tanggal dulu" },
+          { k: "produk", icon: "🏷️", label: "Tren per produk", ok: Boolean(trenHarian), hint: "Pilih rentang tanggal dulu" },
+        ] as const).map((g) => {
+          const on = grafikBuka.has(g.k) && g.ok;
+          return (
+            <button key={g.k} type="button" aria-pressed={on} disabled={!g.ok} title={g.ok ? "" : g.hint}
+              onClick={() => toggleGrafik(g.k)}
+              className={`flex h-10 items-center gap-2 rounded-full border px-4 text-base transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${on ? "border-indigo-400/50 bg-indigo-500/25 font-semibold text-indigo-200" : "border-white/10 text-slate-300 hover:bg-white/10"}`}>
+              <Icn e={g.icon} className="h-4 w-4" />
+              {g.label}
+              <span aria-hidden className="text-xs opacity-70">{on ? "▾" : "▸"}</span>
+            </button>
+          );
+        })}
+        {grafikBuka.size > 0 && (
+          <button type="button" onClick={() => setGrafikBuka(new Set())}
+            className="ml-auto rounded-full px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/10">Tutup semua</button>
+        )}
+      </div>
+
       {/* Grafik per barang (10, mengikuti filter & urutan, dengan logo brand) */}
+      {grafikBuka.has("barang") && (
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <p className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
           <Icn e="📊" className="h-4 w-4" />
@@ -494,8 +513,10 @@ function ProdukPageContent() {
         </p>
         <ProdukChart config={chartCfg} />
       </div>
+      )}
 
       {/* Tren per bulan */}
+      {grafikBuka.has("bulan") && (
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <p className="flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
@@ -534,9 +555,10 @@ function ProdukPageContent() {
           Ikut filter Area / Kategori / Brand / Toko. Tanpa produk dipilih: mengikuti urutan (qty atau penjualan); setelah produk dipilih: Penjualan dan Qty tampil bersamaan. Bulan tanpa tab ditampilkan putus.
         </p>
       </div>
+      )}
 
       {/* Tren per hari — muncul bila filter tanggal dipakai */}
-      {trenHarian && (
+      {grafikBuka.has("harian") && trenHarian && (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
             <Icn e="🗓️" className="h-4 w-4" />
@@ -574,7 +596,7 @@ function ProdukPageContent() {
       )}
 
       {/* Tren per produk — muncul bila filter tanggal dipakai */}
-      {trenHarian && trenProduk && (
+      {grafikBuka.has("produk") && trenHarian && trenProduk && (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
           <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
             <Icn e="🏷️" className="h-4 w-4" />
