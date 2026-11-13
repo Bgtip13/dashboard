@@ -8,12 +8,16 @@ import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan, formatTanggal, rentangH
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
+import DateRangePicker from "@/components/DateRangePicker";
 import SearchSelect, { type SearchItem } from "@/components/SearchSelect";
 import ProdukChart, { type ProdukChartConfig } from "@/components/ProdukChart";
+import ProdukMultiTrenChart, { WARNA_PRODUK, type ProdukMultiConfig } from "@/components/ProdukMultiTrenChart";
 import ProdukTrenChart, { type ProdukTrenConfig } from "@/components/ProdukTrenChart";
 
 const PAGE_SIZE = 25;
 const CHART_TOP = 10; // ← jumlah batang grafik
+const TREN_PRODUK_GARIS = 5;  // ← jumlah produk (garis) pada tren per produk
+const TREN_PRODUK_TABEL = 10; // ← jumlah baris tabel ranking produk
 
 const uniqSorted = (xs: string[]) => Array.from(new Set(xs.filter(Boolean))).sort();
 
@@ -77,6 +81,18 @@ function Persen({ d }: { d: Delta }) {
   );
 }
 
+/** Perubahan vs periode sebelumnya untuk satu produk (ringkas, cocok untuk sel tabel). */
+function Perubahan({ now, prev, ada }: { now: number; prev: number; ada: boolean }) {
+  if (!ada) return <span className="text-slate-500">–</span>;
+  if (prev === 0) return now === 0 ? <span className="text-slate-500">–</span> : <span className="font-semibold text-indigo-300">baru</span>;
+  const p = ((now - prev) / Math.abs(prev)) * 100;
+  return (
+    <span className={p >= 0 ? "font-semibold text-emerald-300" : "font-semibold text-rose-300"}>
+      {p >= 0 ? "▲" : "▼"} {Math.abs(p).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%
+    </span>
+  );
+}
+
 type Urut = "pj-desc" | "pj-asc" | "qty-desc" | "qty-asc";
 
 function ProdukPageContent() {
@@ -136,15 +152,17 @@ function ProdukPageContent() {
   const kategoris = useMemo(() => uniqSorted(rows.map((r) => r.kategori)), [rows]);
   const brands = useMemo(() => uniqSorted(rows.map((r) => r.brand)), [rows]);
 
-  // Tanggal paling awal / akhir di seluruh tab (batas kalender & batas bawaan grafik harian)
-  const [tglMin, tglMax] = useMemo(() => {
+  // Tanggal paling awal / akhir di seluruh tab + daftar tanggal yang punya transaksi (untuk kalender & grafik harian)
+  const [tglMin, tglMax, tanggalAda] = useMemo(() => {
     let lo = "", hi = "";
+    const ada = new Set<string>();
     for (const b of semua?.bulan ?? []) for (const r of b.rows) {
       if (!r.tanggal) continue;
+      ada.add(r.tanggal);
       if (!lo || r.tanggal < lo) lo = r.tanggal;
       if (!hi || r.tanggal > hi) hi = r.tanggal;
     }
-    return [lo, hi];
+    return [lo, hi, ada] as const;
   }, [semua]);
 
   // Filter yang tidak ada di data (mis. sisa perintah asisten) otomatis dianggap "ALL"
@@ -320,6 +338,49 @@ function ProdukPageContent() {
     };
   }, [semua, periodeAktif, dari, sampai, tglMin, tglMax, urut, trenCari, areaEff, kategoriEff, brandEff, tokoEff]);
 
+  // Tren PER PRODUK pada rentang tanggal terpilih (tambahan). Produk teratas/terendah (ikut urutan) digambar
+  // sebagai garis per hari, plus tabel ranking dengan perubahan vs periode sebelumnya yang sama panjang.
+  // Ikut filter Area/Kategori/Brand/Toko dan kotak produk/brand tren (mis. ketik brand → produk milik brand itu).
+  const trenProduk = useMemo(() => {
+    if (!trenHarian || !semua) return null;
+    const { awal, akhir } = trenHarian;
+    const metric: "penjualan" | "qty" = urut.startsWith("qty") ? "qty" : "penjualan";
+    const terms = trenCari.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const hari = rentangHari(awal, akhir);
+    const idx = new Map(hari.map((t, i) => [t, i]));
+    const pAkhir = tambahHari(awal, -1), pAwal = tambahHari(awal, -hari.length);
+    type Acc = { brand: string; rp: number[]; qty: number[]; totRp: number; totQty: number; pRp: number; pQty: number };
+    const m = new Map<string, Acc>();
+    let pAda = false;
+    for (const b of semua.bulan) for (const r of b.rows) {
+      if (!r.tanggal) continue;
+      const i = idx.get(r.tanggal);
+      const prev = i === undefined && r.tanggal >= pAwal && r.tanggal <= pAkhir;
+      if (i === undefined && !prev) continue;
+      if (areaEff !== "ALL" && r.area !== areaEff) continue;
+      if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) continue;
+      if (brandEff !== "ALL" && r.brand !== brandEff) continue;
+      if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) continue;
+      if (terms.length > 0) {
+        const hay = `${r.barang} ${r.brand}`.toLowerCase();
+        if (!terms.every((t) => hay.includes(t))) continue;
+      }
+      let a = m.get(r.barang);
+      if (!a) { a = { brand: r.brand, rp: Array(hari.length).fill(0), qty: Array(hari.length).fill(0), totRp: 0, totQty: 0, pRp: 0, pQty: 0 }; m.set(r.barang, a); }
+      if (i !== undefined) { a.rp[i] += r.penjualan; a.qty[i] += r.qty; a.totRp += r.penjualan; a.totQty += r.qty; }
+      else { a.pRp += r.penjualan; a.pQty += r.qty; pAda = true; }
+    }
+    const nilai = (a: Acc) => (metric === "qty" ? a.totQty : a.totRp);
+    const urutan = [...m.entries()].filter(([, a]) => a.totRp !== 0 || a.totQty !== 0)
+      .sort((x, y) => (urut.endsWith("desc") ? nilai(y[1]) - nilai(x[1]) : nilai(x[1]) - nilai(y[1])));
+    const chart: ProdukMultiConfig = {
+      labels: trenHarian.config.labels, metric,
+      series: urutan.slice(0, TREN_PRODUK_GARIS).map(([name, a]) => ({ name, values: metric === "qty" ? a.qty : a.rp })),
+    };
+    const tabel = urutan.slice(0, TREN_PRODUK_TABEL).map(([name, a]) => ({ name, ...a }));
+    return { chart, tabel, pAda, jumlah: urutan.length, metric };
+  }, [trenHarian, semua, urut, trenCari, areaEff, kategoriEff, brandEff, tokoEff]);
+
   // Item untuk filter ber-search bar
   const itemsBulan = useMemo<SearchItem[]>(() => [
     ...[...bulanList].reverse().map((l) => ({ value: l, label: l })),
@@ -389,17 +450,8 @@ function ProdukPageContent() {
           {brandEff !== "ALL" && <BrandLogo brand={brandEff} size={30} />}
         </span>
         <SearchSelect value={tokoEff} onChange={setToko} items={itemsToko} ariaLabel="Pilih toko" placeholder="Cari nama toko…" className="min-w-52" />
-        <span className="flex items-center gap-2 text-sm text-slate-400">
-          <input type="date" value={dari} min={tglMin || undefined} max={sampai || tglMax || undefined}
-            onChange={(e) => setDari(e.target.value)} aria-label="Dari tanggal" className={`${selectCls} [color-scheme:dark]`} />
-          s/d
-          <input type="date" value={sampai} min={dari || tglMin || undefined} max={tglMax || undefined}
-            onChange={(e) => setSampai(e.target.value)} aria-label="Sampai tanggal" className={`${selectCls} [color-scheme:dark]`} />
-          {(dari || sampai) && (
-            <button onClick={() => { setDari(""); setSampai(""); }}
-              className="rounded-full border border-white/10 px-3 py-2 transition-colors hover:bg-white/10">Reset</button>
-          )}
-        </span>
+        <DateRangePicker dari={dari} sampai={sampai} max={tglMax} adaData={tanggalAda}
+          onChange={(a, b) => { setDari(a); setSampai(b); }} />
         <select value={urut} onChange={(e) => setUrut(e.target.value as Urut)} className={selectCls}>
           <option value="pj-desc">Penjualan tertinggi</option>
           <option value="pj-asc">Penjualan terendah</option>
@@ -517,6 +569,65 @@ function ProdukPageContent() {
           )}
           <p className="mt-2 text-xs text-slate-500">
             Memakai kotak produk/brand di tren bulanan dan filter Area / Kategori / Brand / Toko. Hari tanpa transaksi dihitung 0; baris tanpa tanggal tidak ikut.
+          </p>
+        </div>
+      )}
+
+      {/* Tren per produk — muncul bila filter tanggal dipakai */}
+      {trenHarian && trenProduk && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+          <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+            <Icn e="🏷️" className="h-4 w-4" />
+            Tren {trenProduk.metric === "qty" ? "qty" : "penjualan"} per produk —{" "}
+            <span className="text-indigo-300">
+              {Math.min(TREN_PRODUK_GARIS, trenProduk.jumlah)} produk {urut.endsWith("desc") ? "tertinggi" : "terendah"} · {formatTanggal(trenHarian.awal)} s/d {formatTanggal(trenHarian.akhir)}
+            </span>
+          </p>
+          {trenProduk.chart.series.length === 0 ? (
+            <p className="py-16 text-center text-slate-500">🔍 Tidak ada penjualan produk pada periode ini.</p>
+          ) : (
+            <>
+              <ProdukMultiTrenChart config={trenProduk.chart} />
+              <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
+                <table className="w-full whitespace-nowrap text-base">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-3 font-semibold">#</th>
+                      <th className="px-4 py-3 font-semibold">Produk</th>
+                      <th className="px-4 py-3 text-right font-semibold">Qty</th>
+                      <th className="px-4 py-3 text-right font-semibold">vs sebelumnya</th>
+                      <th className="px-4 py-3 text-right font-semibold">Penjualan</th>
+                      <th className="px-4 py-3 text-right font-semibold">vs sebelumnya</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trenProduk.tabel.map((t, i) => (
+                      <tr key={t.name} className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
+                        <td className="px-4 py-3 tabular-nums text-slate-400">
+                          {i < TREN_PRODUK_GARIS
+                            ? <span className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: WARNA_PRODUK[i] }} />{i + 1}</span>
+                            : i + 1}
+                        </td>
+                        <td className="max-w-[clamp(16rem,34vw,60rem)] px-4 py-3 font-medium">
+                          <span className="flex items-center gap-2">
+                            <BrandLogo brand={t.brand} size={24} />
+                            <span className="truncate" title={t.name}>{t.name}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right tabular-nums">{t.totQty.toLocaleString("id-ID")}</td>
+                        <td className="px-4 py-3 text-right tabular-nums"><Perubahan now={t.totQty} prev={t.pQty} ada={trenProduk.pAda} /></td>
+                        <td className="px-4 py-3 text-right font-semibold tabular-nums">{rp(t.totRp)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums"><Perubahan now={t.totRp} prev={t.pRp} ada={trenProduk.pAda} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+          <p className="mt-2 text-xs text-slate-500">
+            Garis = produk pada tabel dengan titik berwarna; urutan & metrik (qty / penjualan) mengikuti pilihan urutan. "vs sebelumnya" membandingkan dengan periode sebelumnya yang sama panjang;
+            "baru" = belum ada penjualan di periode sebelumnya. Ketik brand/produk di kotak tren bulanan untuk mempersempit.
           </p>
         </div>
       )}
