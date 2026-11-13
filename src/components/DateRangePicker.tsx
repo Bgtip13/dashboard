@@ -138,14 +138,14 @@ export default function DateRangePicker({ dari, sampai, onChange, max, adaData }
     : "Semua tanggal";
 
   return (
-    <div ref={root} className="relative flex items-center gap-2">
+    <div ref={root} className="relative flex w-full items-center gap-2">
       <button ref={tombol} type="button" aria-haspopup="dialog" aria-expanded={open} aria-label="Pilih rentang tanggal"
         onClick={() => (open ? setOpen(false) : buka())}
-        className={`flex h-11 items-center gap-2.5 rounded-xl border px-4 text-base outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 ${aktif ? "border-indigo-400/50 bg-indigo-500/15 text-indigo-200" : "border-white/10 bg-white/5 text-slate-200"}`}>
+        className={`flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl border px-4 text-base outline-none transition-colors hover:border-white/20 focus:border-indigo-400/60 ${aktif ? "border-indigo-400/50 bg-indigo-500/15 text-indigo-200" : "border-white/10 bg-white/5 text-slate-200"}`}>
         <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 shrink-0 opacity-70" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="5" width="18" height="16" rx="3" /><path d="M8 3v4M16 3v4M3 10h18" />
         </svg>
-        <span className="whitespace-nowrap">{teks}</span>
+        <span className="flex-1 truncate text-left">{teks}</span>
         <span aria-hidden className={`text-xs text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}>▾</span>
       </button>
       {aktif && (

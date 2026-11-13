@@ -27,7 +27,7 @@ function option(cfg: ProdukMultiConfig, isDark: boolean): EChartsOption {
     color: WARNA_PRODUK,
     legend: {
       type: "scroll", bottom: 0, itemGap: 18, itemWidth: 18, itemHeight: 10,
-      textStyle: { color: txt, fontSize: 14 },
+      textStyle: { color: txt, fontSize: 17 },
       formatter: (n: string) => potong(n, 34),
       pageTextStyle: { color: txt },
     },
@@ -35,7 +35,7 @@ function option(cfg: ProdukMultiConfig, isDark: boolean): EChartsOption {
       trigger: "axis",
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: strong, fontSize: 15 },
+      textStyle: { color: strong, fontSize: 17 },
       formatter: (params) => {
         const arr = (Array.isArray(params) ? params : [params]) as unknown as
           { axisValueLabel: string; seriesName: string; value: number; marker: string }[];
@@ -44,15 +44,15 @@ function option(cfg: ProdukMultiConfig, isDark: boolean): EChartsOption {
           ...urut.map((p) => `${p.marker} ${esc(p.seriesName)}: <b>${nilai(Number(p.value))}</b>`)].join("<br/>");
       },
     },
-    grid: { left: 8, right: 24, top: 24, bottom: 48, containLabel: true },
+    grid: { left: 8, right: 24, top: 24, bottom: 56, containLabel: true },
     xAxis: {
       type: "category", data: cfg.labels, boundaryGap: false,
       axisLine: { lineStyle: { color: grid } }, axisTick: { show: false },
-      axisLabel: { color: txt, fontSize: 15 },
+      axisLabel: { color: txt, fontSize: 17 },
     },
     yAxis: {
       type: "value", splitLine: { lineStyle: { color: grid } },
-      axisLabel: { color: txt, fontSize: 15, formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")) },
+      axisLabel: { color: txt, fontSize: 17, formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")) },
     },
     series: cfg.series.map((s) => ({
       name: s.name, type: "line" as const, data: s.values, smooth: false,

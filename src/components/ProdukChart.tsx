@@ -16,14 +16,14 @@ export interface ProdukChartConfig {
 
 // Geometri (px) — overlay HTML harus cocok persis dengan grid ECharts
 const GRID = { left: 8, right: 8, top: 4, bottom: 0 };
-const LOGO_COL = 30;  // kolom logo
-const CHART_H = 480;  // tinggi chart (px), harus sama dengan style container
+const LOGO_COL = 36;  // kolom logo
+const CHART_H = 540;  // tinggi chart (px), harus sama dengan style container
 
 /** Ukuran adaptif: makin lebar halaman → kolom nama makin lebar & angka ditulis lengkap (tidak disingkat). */
 interface Layout { nameCol: number; axisX: number; right: number; full: boolean }
 function layoutDari(w: number): Layout {
   const full = w >= 900;                                    // cukup lebar → "Rp91.612.345", bukan "Rp91,6 jt"
-  const right = full ? 270 : 190;                           // ruang label di ujung batang
+  const right = full ? 340 : 230;                           // ruang label di ujung batang
   const nameCol = Math.round(Math.min(520, Math.max(200, w * 0.32)));
   return { nameCol, axisX: GRID.left + LOGO_COL + nameCol, right, full };
 }
@@ -52,7 +52,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
       },
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 15 },
+      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 17 },
     },
     grid: { left: L.axisX, right: L.right, top: GRID.top, bottom: GRID.bottom, containLabel: false },
     xAxis: {
@@ -61,7 +61,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
       splitLine: { lineStyle: { color: gridLine } },
       axisLabel: {
         color: txt,
-        fontSize: 15,
+        fontSize: 16,
         formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")),
       },
     },
@@ -73,7 +73,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
       axisLabel: { show: false }, // logo & nama digambar oleh overlay HTML di bawah
     },
     series: [{
-      type: "bar", data: cfg.items.map((i) => i.value), barMaxWidth: 16,
+      type: "bar", data: cfg.items.map((i) => i.value), barMaxWidth: 20,
       itemStyle: {
         borderRadius: [0, 6, 6, 0],
         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
@@ -82,7 +82,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
       },
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },
       label: {
-        show: true, position: "right", color: isDark ? "#f1f5f9" : "#0f172a", fontSize: 15, fontWeight: 600,
+        show: true, position: "right", color: isDark ? "#f1f5f9" : "#0f172a", fontSize: 18, fontWeight: 600,
         formatter: (p) => labelTxt(cfg.items[p.dataIndex]),
       },
     }],
@@ -124,8 +124,8 @@ export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
             <div key={`${it.name}-${i}`}
               className="absolute flex items-center gap-2"
               style={{ top, left: GRID.left, transform: "translateY(-50%)" }}>
-              <BrandLogo brand={it.brand} size={24} />
-              <span className="truncate text-base font-medium"
+              <BrandLogo brand={it.brand} size={28} />
+              <span className="truncate text-lg font-medium"
                 style={{ color: nameColor, width: L.nameCol - 12 }} title={it.name}>
                 {it.name}
               </span>

@@ -24,12 +24,12 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
   const num = (v: unknown) => (v == null || v === "-" ? "belum ada data" : Number(v).toLocaleString("id-ID"));
   return {
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
-    legend: { top: 0, textStyle: { color: txt, fontSize: 15 }, data: ["Penjualan", "Qty"] },
+    legend: { top: 0, textStyle: { color: txt, fontSize: 17 }, data: ["Penjualan", "Qty"] },
     tooltip: {
       trigger: "axis",
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: strong, fontSize: 15 },
+      textStyle: { color: strong, fontSize: 17 },
       valueFormatter: (v) => (v == null || v === "-" ? "belum ada data" : num(v)),
       formatter: (params) => {
         const arr = (Array.isArray(params) ? params : [params]) as unknown as { axisValueLabel: string; seriesName: string; value: unknown }[];
@@ -38,20 +38,20 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
         return [`<b>${head}</b>`, ...rows].join("<br/>");
       },
     },
-    grid: { left: 8, right: 8, top: 64, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 8, top: 72, bottom: 8, containLabel: true },
     xAxis: {
       type: "category", data: cfg.labels, boundaryGap: true,
       axisLine: { lineStyle: { color: grid } }, axisTick: { show: false },
-      axisLabel: { color: txt, fontSize: 15 },
+      axisLabel: { color: txt, fontSize: 17 },
     },
     yAxis: [
       {
         type: "value", position: "left", splitLine: { lineStyle: { color: grid } },
-        axisLabel: { color: txt, fontSize: 15, formatter: (v: number) => rpShort(v).replace("Rp", "") },
+        axisLabel: { color: txt, fontSize: 17, formatter: (v: number) => rpShort(v).replace("Rp", "") },
       },
       {
         type: "value", position: "right", splitLine: { show: false },
-        axisLabel: { color: "#22d3ee", fontSize: 15, formatter: (v: number) => v.toLocaleString("id-ID") },
+        axisLabel: { color: "#22d3ee", fontSize: 17, formatter: (v: number) => v.toLocaleString("id-ID") },
       },
     ],
     series: [
@@ -59,7 +59,7 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
         name: "Qty", type: "bar", yAxisIndex: 1, data: cfg.dual.qty, barMaxWidth: 38,
         itemStyle: { color: "rgba(34,211,238,0.38)", borderRadius: [6, 6, 0, 0] },
         label: {
-          show: cfg.labels.length <= 15, position: "insideBottom", color: strong, fontSize: 14, fontWeight: 600,
+          show: cfg.labels.length <= 15, position: "insideBottom", color: strong, fontSize: 16, fontWeight: 600,
           formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : Number(p.value).toLocaleString("id-ID")),
         },
       },
@@ -67,7 +67,7 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
         name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 6 : 10,
         lineStyle: { width: 3, color: "#3b82f6" },
         itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
-        label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 15, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : uang(Number(p.value))) },
+        label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 17, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : uang(Number(p.value))) },
       },
     ],
     animationDuration: 800, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
@@ -88,17 +88,17 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
       valueFormatter: (v) => (v == null || v === "-" ? "belum ada data" : fmt(Number(v))),
       backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
-      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 15 },
+      textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 17 },
     },
-    grid: { left: 8, right: 36, top: 44, bottom: 8, containLabel: true },
+    grid: { left: 8, right: 36, top: 52, bottom: 8, containLabel: true },
     xAxis: {
       type: "category", data: cfg.labels, boundaryGap: false,
       axisLine: { lineStyle: { color: grid } }, axisTick: { show: false },
-      axisLabel: { color: txt, fontSize: 15 },
+      axisLabel: { color: txt, fontSize: 17 },
     },
     yAxis: {
       type: "value", splitLine: { lineStyle: { color: grid } },
-      axisLabel: { color: txt, fontSize: 15, formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")) },
+      axisLabel: { color: txt, fontSize: 17, formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")) },
     },
     series: [{
       type: "line", data: cfg.values, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 6 : 10,
@@ -109,7 +109,7 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
           { offset: 0, color: "rgba(99,102,241,0.35)" }, { offset: 1, color: "rgba(34,211,238,0.02)" },
         ]),
       },
-      label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 15, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : fmt(Number(p.value))) },
+      label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 17, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : fmt(Number(p.value))) },
     }],
     animationDuration: 800, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
   };
@@ -128,7 +128,7 @@ export default function ProdukTrenChart({ config }: { config: ProdukTrenConfig }
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const full = w >= 1350;
+  const full = w >= 1450;
   const ref = useECharts(option(config, isDark, full), [config, isDark, full]);
   return (
     <div ref={wrap} className="w-full" style={{ height: "clamp(22rem, 42vh, 38rem)" }}>
