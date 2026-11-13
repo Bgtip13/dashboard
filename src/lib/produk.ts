@@ -5,8 +5,12 @@ import { parseCsv, parseNum } from "./csv";
  * Januari, Februari, Maret, … Desember (tahun = tahun berjalan).
  * Tab yang belum dibuat / masih kosong otomatis dilewati.
  *
- * Semua tab bulan wajib memakai urutan kolom yang sama:
- *   Area | Kabupaten | Kecamatan | Kategori | Brand | Nama Barang | Pelanggan | Qty | Penjualan
+ * Urutan kolom (baris 1 = header):
+ *   Area | Kabupaten | Kecamatan | Kategori | Brand | Nama Barang | Pelanggan | Tanggal | Kuantitas | Penjualan
+ *
+ * Kolom dibaca berdasarkan NAMA HEADER (bukan urutan), jadi aman kalau kolom bergeser.
+ * Tab bulan yang belum punya kolom Tanggal (susunan lama, 9 kolom: …Pelanggan | Qty | Penjualan)
+ * tetap terbaca — baris-barisnya hanya tidak punya tanggal.
  *
  * Butuh ID spreadsheet asli (bukan kode 2PACX…) di NEXT_PUBLIC_SHEET_PRODUK_ID,
  * dan sharing "Anyone with the link → Viewer".
@@ -22,7 +26,10 @@ export const NAMA_BULAN = [
 export type ProdukRow = {
   bulan: string;
   area: string; kabupaten: string; kecamatan: string; kategori: string;
-  brand: string; barang: string; pelanggan: string; qty: number; penjualan: number;
+  brand: string; barang: string; pelanggan: string;
+  /** Format ISO "YYYY-MM-DD"; kosong "" bila tab belum punya kolom Tanggal / selnya kosong */
+  tanggal: string;
+  qty: number; penjualan: number;
 };
 export type ProdukBulanData = { label: string; rows: ProdukRow[] };
 export type ProdukSemua = { updatedAt: string; bulan: ProdukBulanData[]; catatan: string[] };
@@ -58,20 +65,98 @@ async function paralel<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): P
   return out;
 }
 
+const norm = (s: unknown) => String(s ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+const NAMA_BULAN_PREFIX: [string, number][] = [
+  ["JAN", 1], ["FEB", 2], ["MAR", 3], ["APR", 4], ["MEI", 5], ["MAY", 5], ["JUN", 6],
+  ["JUL", 7], ["AGU", 8], ["AUG", 8], ["SEP", 9], ["OKT", 10], ["OCT", 10], ["NOV", 11], ["DES", 12], ["DEC", 12],
+];
+
+function isoTanggal(y: number, m: number, d: number): string {
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return "";
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/**
+ * Ubah isi sel tanggal jadi "YYYY-MM-DD" (tanpa zona waktu, jadi tidak bergeser sehari).
+ * Dikenali: 04-11-2026 · 04/11/2026 · 4.11.26 (hari-bulan-tahun) · 2026-11-04 · "4 Nov 2026" · serial Sheets.
+ */
+export function parseTanggal(v: unknown): string {
+  const s = String(v ?? "").trim();
+  if (!s) return "";
+  let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (m) return isoTanggal(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})/);
+  if (m) return isoTanggal(+m[3] < 100 ? 2000 + +m[3] : +m[3], +m[2], +m[1]);
+  m = s.match(/^(\d{1,2})\s+([A-Za-z]+)\.?,?\s+(\d{4})/);
+  if (m) {
+    const bln = NAMA_BULAN_PREFIX.find(([p]) => m![2].toUpperCase().startsWith(p));
+    return bln ? isoTanggal(+m[3], bln[1], +m[1]) : "";
+  }
+  if (/^\d{5}(\.\d+)?$/.test(s)) { // nomor seri tanggal Google Sheets
+    const dt = new Date(Date.UTC(1899, 11, 30) + Math.floor(parseFloat(s)) * 86400000);
+    return isoTanggal(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate());
+  }
+  return "";
+}
+
+/** "2026-11-04" -> "04-11-2026" (sama dengan tampilan di Google Sheet) */
+export function formatTanggal(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : iso;
+}
+
+/** Tambah/kurangi hari pada tanggal ISO (aman zona waktu). */
+export function tambahHari(iso: string, n: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+
+/** Semua tanggal dari `awal` sampai `akhir` (inklusif), berurutan. */
+export function rentangHari(awal: string, akhir: string): string[] {
+  const out: string[] = [];
+  for (let t = awal; t <= akhir && out.length < 800; t = tambahHari(t, 1)) out.push(t);
+  return out;
+}
+
 function toRows(csv: string, label: string): ProdukRow[] {
-  return parseCsv(csv).slice(1)
+  const all = parseCsv(csv);
+  // Baris header = baris pertama (dalam 5 baris awal) yang memuat "Nama Barang" / "Pelanggan"
+  let h = all.slice(0, 5).findIndex((r) => r.some((c) => ["NAMABARANG", "PELANGGAN"].includes(norm(c))));
+  if (h === -1) h = 0;
+  const map: Record<string, number> = {};
+  (all[h] ?? []).forEach((c, i) => { const k = norm(c); if (k && !(k in map)) map[k] = i; });
+  const adaHeader = "NAMABARANG" in map || "PELANGGAN" in map;
+
+  // Cadangan bila nama header tidak ketemu: susunan baru (ada Tanggal) atau susunan lama (tanpa Tanggal)
+  const susunanBaru = !adaHeader || "TANGGAL" in map;
+  const fb = susunanBaru ? { tgl: 7, qty: 8, pj: 9 } : { tgl: -1, qty: 7, pj: 8 };
+  const idx = (names: string[], cadangan: number) => {
+    for (const n of names) { const k = norm(n); if (k in map) return map[k]; }
+    return cadangan;
+  };
+  const cArea = idx(["AREA"], 0), cKab = idx(["KABUPATEN"], 1), cKec = idx(["KECAMATAN"], 2);
+  const cKat = idx(["KATEGORI"], 3), cBrand = idx(["BRAND"], 4), cBarang = idx(["NAMA BARANG", "BARANG"], 5);
+  const cPel = idx(["PELANGGAN", "TOKO"], 6), cTgl = idx(["TANGGAL", "TGL"], fb.tgl);
+  const cQty = idx(["KUANTITAS", "QTY", "QUANTITY", "JUMLAH"], fb.qty);
+  const cPj = idx(["PENJUALAN", "OMSET"], fb.pj);
+  const at = (r: string[], c: number) => (c < 0 ? "" : r[c]);
+
+  return all.slice(h + 1)
     .filter((r) => r.join("").trim() !== "")
     .map((r) => ({
       bulan: label,
-      area: teks(r[0]).toUpperCase(),
-      kabupaten: teks(r[1]),
-      kecamatan: teks(r[2]),
-      kategori: teks(r[3]),
-      brand: teks(r[4]),
-      barang: teks(r[5]),
-      pelanggan: teks(r[6]),
-      qty: parseNum(r[7]),
-      penjualan: parseNum(r[8]),
+      area: teks(at(r, cArea)).toUpperCase(),
+      kabupaten: teks(at(r, cKab)),
+      kecamatan: teks(at(r, cKec)),
+      kategori: teks(at(r, cKat)),
+      brand: teks(at(r, cBrand)),
+      barang: teks(at(r, cBarang)),
+      pelanggan: teks(at(r, cPel)),
+      tanggal: parseTanggal(at(r, cTgl)),
+      qty: parseNum(at(r, cQty)),
+      penjualan: parseNum(at(r, cPj)),
     }));
 }
 
