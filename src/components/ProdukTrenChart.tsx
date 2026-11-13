@@ -7,9 +7,11 @@ import { rp, rpShort } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
 export interface ProdukTrenConfig {
-  labels: string[];              // 12 nama bulan singkat (Jan … Des)
+  labels: string[];              // 12 nama bulan singkat (Jan … Des), atau tanggal per hari bila `harian`
   values: (number | null)[];     // null = tab bulan itu belum ada → garis putus
   metric: "penjualan" | "qty";
+  /** true = satu titik per hari pada rentang tanggal terpilih (hari tanpa transaksi = 0) */
+  harian?: boolean;
   /** diisi saat user memilih produk: tampilkan Penjualan (garis) dan Qty (batang, sumbu kanan) bersamaan */
   dual?: { penjualan: (number | null)[]; qty: (number | null)[] };
 }
@@ -57,15 +59,15 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
         name: "Qty", type: "bar", yAxisIndex: 1, data: cfg.dual.qty, barMaxWidth: 38,
         itemStyle: { color: "rgba(34,211,238,0.38)", borderRadius: [6, 6, 0, 0] },
         label: {
-          show: true, position: "insideBottom", color: strong, fontSize: 11,
-          formatter: (p) => (p.value == null ? "" : Number(p.value).toLocaleString("id-ID")),
+          show: cfg.labels.length <= 31, position: "insideBottom", color: strong, fontSize: 11,
+          formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : Number(p.value).toLocaleString("id-ID")),
         },
       },
       {
-        name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: 9,
+        name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 5 : 9,
         lineStyle: { width: 3, color: "#3b82f6" },
         itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
-        label: { show: true, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null ? "" : uang(Number(p.value))) },
+        label: { show: cfg.labels.length <= 31, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : uang(Number(p.value))) },
       },
     ],
     animationDuration: 800, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
@@ -98,7 +100,7 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
       axisLabel: { color: txt, fontSize: 13, formatter: (v: number) => (cfg.metric === "penjualan" ? rpShort(v).replace("Rp", "") : v.toLocaleString("id-ID")) },
     },
     series: [{
-      type: "line", data: cfg.values, connectNulls: false, symbol: "circle", symbolSize: 9,
+      type: "line", data: cfg.values, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 5 : 9,
       lineStyle: { width: 3, color: "#3b82f6" },
       itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
       areaStyle: {
@@ -106,7 +108,7 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
           { offset: 0, color: "rgba(99,102,241,0.35)" }, { offset: 1, color: "rgba(34,211,238,0.02)" },
         ]),
       },
-      label: { show: true, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null ? "" : fmt(Number(p.value))) },
+      label: { show: cfg.labels.length <= 31, position: "top", color: txt, fontSize: 12, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : fmt(Number(p.value))) },
     }],
     animationDuration: 800, animationDurationUpdate: 600, animationEasingUpdate: "cubicOut",
   };
