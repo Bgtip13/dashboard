@@ -24,7 +24,7 @@ interface Layout { nameCol: number; axisX: number; right: number; full: boolean 
 function layoutDari(w: number): Layout {
   const full = w >= 900;                                    // cukup lebar → "Rp91.612.345", bukan "Rp91,6 jt"
   const right = full ? 340 : 230;                           // ruang label di ujung batang
-  const nameCol = Math.round(Math.min(520, Math.max(200, w * 0.32)));
+  const nameCol = Math.round(Math.min(600, Math.max(220, w * 0.36)));
   return { nameCol, axisX: GRID.left + LOGO_COL + nameCol, right, full };
 }
 
@@ -125,8 +125,8 @@ export default function ProdukChart({ config }: { config: ProdukChartConfig }) {
               className="absolute flex items-center gap-2"
               style={{ top, left: GRID.left, transform: "translateY(-50%)" }}>
               <BrandLogo brand={it.brand} size={28} />
-              <span className="truncate text-lg font-medium"
-                style={{ color: nameColor, width: L.nameCol - 12 }} title={it.name}>
+              <span className="text-base font-medium"
+                style={{ color: nameColor, width: L.nameCol - 12, lineHeight: 1.15, whiteSpace: "normal", wordBreak: "break-word" }} title={it.name}>
                 {it.name}
               </span>
             </div>
