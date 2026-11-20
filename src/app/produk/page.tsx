@@ -7,6 +7,7 @@ import { rp } from "@/lib/utils";
 import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan, formatTanggal, rentangHari, tambahHari, type ProdukRow } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
+import PageHeader from "@/components/PageHeader";
 import BrandLogo from "@/components/BrandLogo";
 import DateRangePicker from "@/components/DateRangePicker";
 import SearchSelect, { type SearchItem } from "@/components/SearchSelect";
@@ -37,10 +38,10 @@ function StatCard({ label, icon, delay, children }: {
 }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-colors hover:border-white/20 hover:bg-white/[0.06]">
+      className="group relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5 transition-colors hover:border-white/20 hover:bg-white/[0.06]">
       <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-indigo-500/10 blur-2xl transition-opacity group-hover:bg-cyan-400/15" />
       <div className="flex items-start justify-between">
-        <p className="text-sm uppercase tracking-wider text-slate-400">{label}</p>
+        <p className="lbl">{label}</p>
         <Icn e={icon} className="h-4 w-4 opacity-40" />
       </div>
       {children}
@@ -422,34 +423,22 @@ function ProdukPageContent() {
   }
 
   return (
-    <div className="relative space-y-8 py-8">
-      {/* Aksen cahaya latar */}
-      <div className="pointer-events-none absolute inset-x-0 -top-24 -z-10 h-72 opacity-60"
-        style={{ background: "radial-gradient(600px 200px at 30% 0%, rgba(99,102,241,0.18), transparent), radial-gradient(500px 200px at 75% 10%, rgba(34,211,238,0.10), transparent)" }} />
-
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">
-            Penjualan Produk
-            {periodeAktif
-              ? <span className="ml-3 text-xl font-medium text-indigo-300">· {formatTanggal(dari || tglMin)} s/d {formatTanggal(sampai || tglMax)}</span>
-              : bulanEff && <span className="ml-3 text-xl font-medium text-indigo-300">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}
-          </h1>
-          <p className="text-sm text-slate-400">
-            {isLoading || !data ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
-          </p>
-        </div>
+    <div className="relative space-y-6 py-4 sm:py-2">
+      <PageHeader crumb="Produk"
+        title={<>Penjualan Produk{periodeAktif
+          ? <span className="ml-3 text-[1.1rem] font-normal text-slate-400">· {formatTanggal(dari || tglMin)} s/d {formatTanggal(sampai || tglMax)}</span>
+          : bulanEff && <span className="ml-3 text-[1.1rem] font-normal text-slate-400">· {bulanEff === SEMUA_BULAN ? "Semua Bulan" : bulanEff}</span>}</>}
+        sub={isLoading || !data ? "Memuat…" : `${rows.length.toLocaleString("id-ID")} baris · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}>
         {!isLoading && (
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-300">
+          <span className="chip-lime">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#15161a] opacity-30" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#15161a]" />
             </span>
             Live · Google Sheets
           </span>
         )}
-      </div>
+      </PageHeader>
 
       {semua && semua.catatan.length > 0 && (
         <p className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-300">
@@ -458,7 +447,7 @@ function ProdukPageContent() {
       )}
 
       {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         <SearchSelect value={bulanEff} onChange={setBulanPilih} items={itemsBulan} ariaLabel="Pilih bulan" placeholder="Cari bulan…" />
         <SearchSelect value={areaEff} onChange={setArea} items={itemsArea} ariaLabel="Pilih area" placeholder="Cari area…" />
         <SearchSelect value={kategoriEff} onChange={setKategori} items={itemsKategori} ariaLabel="Pilih kategori" placeholder="Cari kategori…" />
@@ -505,7 +494,7 @@ function ProdukPageContent() {
       </div>
 
       {/* Menu grafik: klik untuk membuka / menutup, boleh lebih dari satu */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-3">
         <span className="px-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Grafik</span>
         {([
           { k: "barang", icon: "📊", label: "Per barang", ok: true, hint: "" },
@@ -532,8 +521,8 @@ function ProdukPageContent() {
 
       {/* Grafik per barang (10, mengikuti filter & urutan, dengan logo brand) */}
       {grafikBuka.has("barang") && (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-        <p className="mb-2 flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+      <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+        <p className="mb-2 flex items-center gap-2 lbl">
           <Icn e="📊" className="h-4 w-4" />
           {chartCfg.metric === "qty" ? "Qty" : "Penjualan"} per barang —{" "}
           <span className="text-indigo-300">{urut.endsWith("desc") ? `${CHART_TOP} tertinggi` : `${CHART_TOP} terendah`}</span>
@@ -544,9 +533,9 @@ function ProdukPageContent() {
 
       {/* Tren per bulan */}
       {grafikBuka.has("bulan") && (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <p className="flex items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+          <p className="flex items-center gap-2 lbl">
             <Icn e="📈" className="h-4 w-4" />
             Tren {trenData.config.dual ? "penjualan & qty" : trenData.config.metric === "qty" ? "qty" : "penjualan"} per bulan —{" "}
             <span className="text-indigo-300">{trenCari.trim() ? `${trenData.jumlahBarang} barang cocok` : "total sesuai filter"}</span>
@@ -586,8 +575,8 @@ function ProdukPageContent() {
 
       {/* Tren per hari — muncul bila filter tanggal dipakai */}
       {grafikBuka.has("harian") && trenHarian && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="mb-3 flex flex-wrap items-center gap-2 lbl">
             <Icn e="🗓️" className="h-4 w-4" />
             Tren {trenHarian.dual ? "penjualan & qty" : trenHarian.config.metric === "qty" ? "qty" : "penjualan"} per hari —{" "}
             <span className="text-indigo-300">
@@ -624,8 +613,8 @@ function ProdukPageContent() {
 
       {/* Tren per produk — muncul bila filter tanggal dipakai */}
       {grafikBuka.has("produk") && trenHarian && trenProduk && (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-          <p className="mb-3 flex flex-wrap items-center gap-2 text-sm uppercase tracking-wider text-slate-400">
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+          <p className="mb-3 flex flex-wrap items-center gap-2 lbl">
             <Icn e="🏷️" className="h-4 w-4" />
             Tren {trenProduk.metric === "qty" ? "qty" : "penjualan"} per produk —{" "}
             <span className="text-indigo-300">
@@ -640,7 +629,7 @@ function ProdukPageContent() {
               <div className="mt-4 overflow-x-auto rounded-xl border border-white/10">
                 <table className="w-full whitespace-nowrap text-base">
                   <thead>
-                    <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-white/10 bg-white/5 text-left lbl">
                       <th className="px-4 py-3 font-semibold">#</th>
                       <th className="px-4 py-3 font-semibold">Produk</th>
                       <th className="px-4 py-3 text-right font-semibold">Qty</th>
@@ -682,11 +671,11 @@ function ProdukPageContent() {
       )}
 
       {/* Tabel */}
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+      <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
           <table className="w-full whitespace-nowrap text-base">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-white/10 bg-white/5 text-left lbl">
                 <th className="px-5 py-3.5 font-semibold">Area</th>
                 <th className="px-4 py-3 font-semibold">Kabupaten</th>
                 <th className="px-4 py-3 font-semibold">Kecamatan</th>
