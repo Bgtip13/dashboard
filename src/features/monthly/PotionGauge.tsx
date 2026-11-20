@@ -12,6 +12,7 @@ import InfinityLoop from "@/components/InfinityLoop";
 import Icn from "@/components/Icn";
 
 const SHAPE = "circle";
+const LIME: [string, string] = ["#9fbf1a", "#dcf55f"];
 
 function potionOption(
   pct: number, gradient: [string, string], fmt: (v: number) => string,
@@ -24,7 +25,7 @@ function potionOption(
       {
         type: "liquidFill", shape: SHAPE, radius: "88%",
         data: [
-          { value: v, direction: "left", itemStyle: { shadowBlur: 18, shadowColor: gradient[1] } },
+          { value: v, direction: "left", itemStyle: { shadowBlur: 10, shadowColor: gradient[1] + "55" } },
           { value: Math.max(v - 0.035, 0) },
           { value: Math.max(v - 0.07, 0) },
         ],
@@ -35,7 +36,7 @@ function potionOption(
           itemStyle: { borderWidth: 2, borderColor: gradient[1] + "88", shadowBlur: 12, shadowColor: gradient[1] + "55" },
         },
         amplitude: 7, waveLength: "70%", period: 3200,
-        label: { formatter: () => fmt(pct), fontSize: 34, fontWeight: 800, color: labelColor },
+        label: { formatter: () => fmt(pct), fontSize: 34, fontWeight: 300, color: labelColor },
         silent: true,
       },
     ],
@@ -53,20 +54,20 @@ export default function PotionGauge({
 }) {
   const { isDark } = useTheme();
   const ref = useECharts(
-    potionOption(pct, gradient, formatter,
-      isDark ? "#f8fafc" : "#0f172a",
-      isDark ? "rgba(148,163,184,0.06)" : "rgba(15,23,42,0.05)"),
+    potionOption(pct, isDark ? LIME : gradient, formatter,
+      isDark ? "#f4f5f8" : "#15161a",
+      isDark ? "rgba(255,255,255,0.05)" : "rgba(21,22,26,0.05)"),
     [pct, gradient, formatter, isDark]
   );
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-      className="relative rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-shadow hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
-      <h3 className="text-base font-semibold text-slate-300">{title}</h3>
+      className="relative rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+      <h3 className="lbl">{title}</h3>
       {badge && (
         <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.6 }}
           className="absolute left-4 top-11 z-10 rounded-full px-3 py-1 text-sm font-semibold"
-          style={{ ...badgeTone(badge, isDark), boxShadow: `0 0 18px ${badge.color}44` }}>
+          style={{ ...badgeTone(badge, isDark), boxShadow: "none" }}>
           <Icn e={badge.emoji} className="mr-1 h-3 w-3" /> {badge.label}
         </motion.span>
       )}
