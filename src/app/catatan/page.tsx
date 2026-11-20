@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { motion } from "framer-motion";
 import Icn from "@/components/Icn";
+import PageHeader from "@/components/PageHeader";
 import {
   type Catatan, agendaContoh, cuplikan, daftarCatatan, daftarServer, idCatatan,
   judulDari, langganan, tulisCatatan, waktuSingkat,
@@ -161,23 +162,15 @@ export default function CatatanPage() {
   const judulTampil = (c: Catatan) => c.judul.trim() || judulDari(c.isi) || "Catatan tanpa judul";
 
   return (
-    <div className="space-y-6 py-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">Catatan</h1>
-          <p className="mt-1 text-base text-slate-400">
-            Tulis bebas — agenda rapat, ide, atau rencana. Tersimpan otomatis di peramban ini.
-          </p>
-        </div>
-        <button onClick={buat}
-          className="flex items-center gap-2 rounded-full bg-indigo-500/25 px-5 py-2.5 text-base font-semibold text-indigo-200 ring-1 ring-indigo-400/40 transition-transform hover:scale-[1.03] active:scale-95">
-          <span className="text-lg leading-none">＋</span> Catatan baru
-        </button>
-      </div>
+    <div className="space-y-6 py-4 sm:py-2">
+      <PageHeader crumb="Catatan" title="Catatan"
+        sub="Tulis bebas — agenda rapat, ide, atau rencana. Tersimpan otomatis di peramban ini.">
+        <button onClick={buat} className="btn-ink"><span className="text-base leading-none">＋</span> Catatan baru</button>
+      </PageHeader>
 
       <div className="grid gap-5 lg:grid-cols-[clamp(17rem,20vw,28rem)_1fr]">
         {/* Daftar catatan */}
-        <aside className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5">
+        <aside className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-2.5">
           <p className="px-2 py-1.5 text-xs uppercase tracking-[0.18em] text-slate-500">{daftar.length} catatan</p>
           {daftar.length === 0 ? (
             <p className="px-2 py-6 text-sm text-slate-400">Belum ada catatan. Mulai dengan “Catatan baru”.</p>
@@ -208,7 +201,7 @@ export default function CatatanPage() {
 
         {/* Editor */}
         <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+          className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
           {!aktif ? (
             <div className="flex min-h-[45vh] flex-col items-center justify-center gap-3 text-center">
               <Icn e="📝" className="h-10 w-10 text-indigo-300" />
