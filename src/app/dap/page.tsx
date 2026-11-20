@@ -11,6 +11,7 @@ import {
   isKerugian, ringkasSegmentasi, ringkasTren, type AlasanFilter, type TrenFilter, type TrxFilter,
 } from "@/lib/dapSegment";
 import DapChart from "@/features/dap/DapChart";
+import PageHeader from "@/components/PageHeader";
 import DapTable from "@/features/dap/DapTable";
 import TokoSalesChart from "@/features/dap/TokoSalesChart";
 import KomposisiToko from "@/features/dap/KomposisiToko";
@@ -72,8 +73,8 @@ function Kpi({ label, sub, delay, children }: {
 }) {
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }}
-      className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-      <p className="text-sm uppercase tracking-wider text-slate-400">{label}</p>
+      className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+      <p className="lbl">{label}</p>
       <div className="mt-1">{children}</div>
       {sub && <p className="mt-1 text-[0.8rem] leading-tight text-slate-500">{sub}</p>}
     </motion.div>
@@ -214,12 +215,8 @@ function DapPageContent() {
 
   return (
     <div className="space-y-8 py-8">
-      <div>
-        <h1 className="text-3xl font-bold">DAP — Rincian Detail Toko</h1>
-        <p className="text-sm text-slate-400">
-          {isLoading ? "Memuat…" : `${rows.length === all.length ? all.length : `${rows.length} dari ${all.length}`} toko · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
-        </p>
-      </div>
+      <PageHeader crumb="DAP" title="Rincian Detail Toko"
+        sub={isLoading ? "Memuat…" : `${rows.length === all.length ? all.length : `${rows.length} dari ${all.length}`} toko · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`} />
 
       <div className="space-y-2">
         <FilterBar>
@@ -256,8 +253,8 @@ function DapPageContent() {
               <FilterPills
                 items={[
                   { key: "ALL" as const, label: <>Semua</>, hint: "Tanpa filter tren" },
-                  { key: "TURUN" as const, label: <>{dot("#fb7185")}Turun {countChip(segTren.turun)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih kecil dari ${MONTHS[monthIdx - 1]}` },
-                  { key: "NAIK" as const, label: <>{dot("#34d399")}Naik {countChip(segTren.naik)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih besar dari ${MONTHS[monthIdx - 1]}` },
+                  { key: "TURUN" as const, label: <>{dot("#ee5a4e")}Turun {countChip(segTren.turun)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih kecil dari ${MONTHS[monthIdx - 1]}` },
+                  { key: "NAIK" as const, label: <>{dot("#b4d321")}Naik {countChip(segTren.naik)}</>, hint: `Omset ${MONTHS[monthIdx]} lebih besar dari ${MONTHS[monthIdx - 1]}` },
                 ]}
                 value={tren} onChange={(k) => setTren(k as TrenFilter)} id="dap-tren" size="sm" />
             </FilterGroup>
@@ -390,26 +387,26 @@ function DapPageContent() {
         )}
       </motion.div>
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm uppercase tracking-wider text-slate-400">Omset per Bulan (Jan–Des)</p>
+          <p className="lbl">Omset per Bulan (Jan–Des)</p>
           <p className="text-[0.8rem] text-slate-500">Blok penuh = aktual · blok garis = target toko yang tidak transaksi di bulan itu</p>
         </div>
         <DapChart values={monthlyTotals} loss={lossMonthly} selectedMonth={monthIdx} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm uppercase tracking-wider text-slate-400">Komposisi Toko · {MONTHS[monthIdx]}</p>
+            <p className="lbl">Komposisi Toko · {MONTHS[monthIdx]}</p>
             <p className="text-[0.8rem] text-slate-500">{seg.tanpa.toko} toko tanpa transaksi ({seg.pctTokoTanpa.toFixed(1)}%)</p>
           </div>
           <KomposisiToko ringkas={seg} />
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm uppercase tracking-wider text-slate-400">Top 8 Kabupaten · Nominal Hilang</p>
+            <p className="lbl">Top 8 Kabupaten · Nominal Hilang</p>
             <p className="text-[0.8rem] text-slate-500">{seg.hilangToko} toko · {rpShort(seg.hilangNominal)}</p>
           </div>
           {lossKab.length > 0 ? (
@@ -424,7 +421,7 @@ function DapPageContent() {
 
       {selected && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-indigo-400/25 bg-white/[0.04] p-4 shadow-[0_0_40px_rgba(99,102,241,0.12)]">
+          className="card-hl rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-base font-bold text-slate-100">{selected.toko}</p>
