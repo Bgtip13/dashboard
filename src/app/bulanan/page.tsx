@@ -8,6 +8,7 @@ import { getBadge } from "@/lib/badge";
 import { hariEfektif, rp } from "@/lib/utils";
 import PotionGauge from "@/features/monthly/PotionGauge";
 import MonthlyTable from "@/features/monthly/MonthlyTable";
+import PageHeader from "@/components/PageHeader";
 import CountUp from "@/components/CountUp";
 
 const AREAS = ["GLOBAL", "SOLO", "DIY", "SEMARANG", "TAB"] as const;
@@ -50,14 +51,9 @@ function BulananPageContent() {
 
   return (
     <div className="space-y-8 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold">Pencapaian Bulanan</h1>
-          <p className="text-sm text-slate-400">
-            {isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-full border border-white/10 bg-white/5 p-1">
+      <PageHeader crumb="Bulanan" title="Pencapaian Bulanan"
+        sub={isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}>
+        <div className="seg">
           {AREAS.map((a) => (
             <button key={a} onClick={() => setArea(a)} className="relative rounded-full px-5 py-2 text-base">
               {area === a && (
@@ -68,10 +64,10 @@ function BulananPageContent() {
             </button>
           ))}
         </div>
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <PotionGauge title="Penjualan" pct={pcp} gradient={["#3b82f6", "#22d3ee"]}
+        <PotionGauge title="Penjualan" pct={pcp} gradient={["#6f727d", "#15161a"]}
           formatter={(v) => `${v.toFixed(1)}%`} badge={badge}
           footer={
             <div className="space-y-1.5 text-sm">
@@ -82,7 +78,7 @@ function BulananPageContent() {
           } />
 
         <PotionGauge title="Trip" pct={trip.total ? (trip.jalan / trip.total) * 100 : 0}
-          gradient={["#10b981", "#a3e635"]}
+          gradient={["#a2a5af", "#3a3d46"]}
           infinite={isTab}
           formatter={() => (isTab ? "∞" : `${trip.jalan}/${trip.total}`)}
           footer={
@@ -99,7 +95,7 @@ function BulananPageContent() {
           } />
 
         <PotionGauge title="Kontribusi" pct={kon.potensi ? (kon.aktif / kon.potensi) * 100 : 0}
-          gradient={["#f97316", "#ec4899"]}
+          gradient={["#8b8f9a", "#2a2c33"]}
           formatter={(v) => `${v.toFixed(1)}%`}
           footer={
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
@@ -111,7 +107,7 @@ function BulananPageContent() {
           } />
 
         <PotionGauge title="Hari Efektif" pct={he.total ? (he.berjalan / he.total) * 100 : 0}
-          gradient={["#0ea5e9", "#14b8a6"]}
+          gradient={["#b4b7c0", "#4a4d57"]}
           formatter={() => `${he.berjalan}/${he.total}`}
           footer={
             <div className="text-sm text-slate-400">
