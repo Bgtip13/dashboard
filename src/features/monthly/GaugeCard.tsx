@@ -49,7 +49,7 @@ export default function GaugeCard({
   const ref = useECharts(gaugeOption(pct, arcMax, gradient, formatter), [pct, arcMax, formatter]);
   return (
     <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-      className="relative rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-shadow hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+      className="relative rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4 backdrop-blur transition-shadow hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
       <h3 className="text-sm font-semibold text-slate-300">{title}</h3>
       {badge && (
         <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
