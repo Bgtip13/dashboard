@@ -3,7 +3,6 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import Icn from "@/components/Icn";
 
 function LoginForm() {
   const router = useRouter();
@@ -40,7 +39,7 @@ function LoginForm() {
   }
 
   const input =
-    "h-12 w-full rounded-xl border border-white/10 bg-white/5 px-3.5 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60";
+    "h-12 w-full rounded-2xl border border-white/10 bg-white/5 px-3.5 text-base text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-[var(--lime-deep)]";
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center py-10">
@@ -48,21 +47,21 @@ function LoginForm() {
         onSubmit={masuk}
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 sm:p-9"
+        className="relative w-full max-w-md overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-7 sm:p-9"
       >
-        <div aria-hidden className="pointer-events-none absolute -right-10 -top-14 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl" />
-        <div className="relative">
+                <div className="relative">
           <div className="flex items-center gap-2.5 text-xl font-bold">
-            <Icn e="📊" className="h-6 w-6 text-indigo-300" /> PCP Dashboard
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#15161a] text-sm font-semibold text-white dark:bg-[var(--lime)] dark:text-[#15161a]">P</span> PCP Dashboard
           </div>
-          <h1 className="mt-5 text-3xl font-bold">Masuk</h1>
+          <p className="lbl mt-6">Selamat datang</p>
+          <h1 className="mt-1 text-[2.4rem] font-medium leading-none tracking-tight">Masuk</h1>
           <p className="mt-1 text-sm text-slate-400">Masukkan ID dan password untuk membuka dashboard.</p>
 
-          <label className="mt-6 block text-[0.75rem] uppercase tracking-wider text-slate-500" htmlFor="uid">ID</label>
+          <label className="lbl mt-6 block" htmlFor="uid">ID</label>
           <input id="uid" value={id} onChange={(e) => setId(e.target.value)} autoComplete="username"
             autoCapitalize="none" autoFocus placeholder="ID pengguna" className={`${input} mt-1`} />
 
-          <label className="mt-4 block text-[0.75rem] uppercase tracking-wider text-slate-500" htmlFor="pwd">Password</label>
+          <label className="lbl mt-4 block" htmlFor="pwd">Password</label>
           <div className="relative mt-1">
             <input id="pwd" type={lihat ? "text" : "password"} value={password}
               onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
@@ -80,7 +79,7 @@ function LoginForm() {
           )}
 
           <button type="submit" disabled={busy || !id.trim() || !password}
-            className="mt-6 h-12 w-full rounded-xl bg-gradient-to-r from-blue-500 to-cyan-400 text-base font-semibold text-white shadow-[0_8px_28px_rgba(59,130,246,0.45)] transition-all hover:brightness-110 hover:shadow-[0_10px_34px_rgba(59,130,246,0.6)] active:scale-[0.98] disabled:opacity-40 disabled:shadow-none">
+            className="btn-ink mt-6 h-12 w-full justify-center disabled:opacity-40">
             {busy ? "Memeriksa…" : "Masuk"}
           </button>
         </div>
