@@ -42,3 +42,17 @@ Fitur ini memakai kolom baru `tabs` di tabel `app_users` — jalankan sekali `su
 di Supabase SQL Editor. Akun lama (kolom masih kosong) otomatis boleh membuka semua tab.
 
 Setiap user juga bisa mengganti password sendiri lewat tombol bernama/kunci di pojok kanan atas.
+
+## AI Business Analyst & Sales Advisor (F.R.I.D.A.Y)
+
+Asisten lama (navigasi + jawaban angka ringkas) tetap berjalan. Pertanyaan analitik
+("berapa omzet minggu ini?", "toko mana yang turun?", "produk apa yang harus saya tawarkan ke Toko A?")
+dialihkan ke endpoint baru `POST /api/asisten/analis`.
+
+- **Hitungan di backend**: `src/lib/bisnis/engine.ts` (nominal, persen, ranking, periode setara MTD/WTD, rekomendasi). Model AI hanya memilih alat & merangkai kalimat.
+- **Alat whitelist read-only**: `src/lib/bisnis/tools.ts` (tanpa eksekusi kode / query bebas).
+- **Pengaman angka**: angka di jawaban model yang tidak ada di hasil alat → jawaban diganti ringkasan backend.
+- **Sumber data**: tab DAP (omzet per toko per bulan) dan tab PRODUK (transaksi bertanggal). Perbandingan mingguan & bulan berjalan yang setara memakai kolom **Tanggal** tab PRODUK. Cache memori 5 menit.
+- **Akses**: wajib login; data DAP/PRODUK hanya untuk akun yang punya tab tersebut.
+- **Env**: `OPENAI_API_KEY` (wajib untuk mode AI; tanpa itu jalan mode aturan), opsional `OPENAI_BASE_URL`, `OPENAI_ANALIS_MODEL`; plus `NEXT_PUBLIC_SHEET_DAP` & `NEXT_PUBLIC_SHEET_PRODUK_ID` seperti biasa.
+- **Uji**: `npm run test:bisnis` (butuh Node ≥ 22.18).
