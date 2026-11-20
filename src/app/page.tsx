@@ -15,6 +15,9 @@ import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import SorotanTokoList from "@/features/beranda/SorotanToko";
 import { FilterSelect } from "@/components/FilterBar";
+import MatrixChart from "@/components/MatrixChart";
+import PageHeader from "@/components/PageHeader";
+import { MONTH_SHORT } from "@/features/dap/DapChart";
 
 const NAMA = "Bos";
 
@@ -75,6 +78,10 @@ export default function BerandaPage() {
       ambang,
     };
   }, [dapRows, bulan]);
+  const dapMonthly = useMemo(
+    () => Array.from({ length: 12 }, (_, m) => dapRows.reduce((sum, r) => sum + (r.bulanan[m] ?? 0), 0)),
+    [dapRows]
+  );
   const totalKurang = sorotan.bawah.reduce((s, t) => s + t.gap, 0);
 
   const h = now?.getHours() ?? 0;
@@ -84,96 +91,73 @@ export default function BerandaPage() {
   const tgl = now ? now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "…";
 
   return (
-    <div className="space-y-8 py-8">
-      {/* Sapaan + jam */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8">
-        <motion.div aria-hidden
-          animate={{ x: [0, 24, 0], y: [0, -18, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-          className="pointer-events-none absolute -right-10 -top-14 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl" />
-        <motion.div aria-hidden
-          animate={{ x: [0, -20, 0], y: [0, 14, 0] }} transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-          className="pointer-events-none absolute -bottom-16 left-1/4 h-48 w-48 rounded-full bg-cyan-500/15 blur-3xl" />
+    <div className="space-y-6 py-4 sm:py-2">
+      <PageHeader crumb="Beranda" title={<>{greeting(h)}, {NAMA}</>}
+        sub={<>{tgl}{dapRows.length > 0 && <> · <b className="font-medium text-slate-200">{dapRows.length}</b> toko DAP · <span className="text-rose-300">{dapTren.turun} turun</span> · <span className="text-emerald-300">{dapTren.naik} naik</span> vs {MONTHS[bulan > 0 ? bulan - 1 : 11]}</>}</>}>
+        <span className="chip-soft mono tabular-nums">{jam}:{mnt}<span className="opacity-50">:{dtk}</span> WIB</span>
+        {me?.user.tabs.includes("dap") && <Link href="/dap" className="btn-ink">Buka DAP <span aria-hidden>→</span></Link>}
+      </PageHeader>
 
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
+      {/* Kartu utama: angka besar + grafik titik */}
+      <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-[1.8rem] border border-white/10 bg-white/[0.04] p-5 sm:p-7">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <h2 className="text-[1.05rem] font-medium">PCP bulan ini</h2>
+          <span className="lbl flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-[var(--ink)]" />Aktual</span>
+          <span className="lbl flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full bg-[var(--danger)]" />Hilang</span>
+          <span className="lbl flex items-center gap-1.5"><i className="h-1.5 w-1.5 rounded-full" style={{ background: "color-mix(in srgb, var(--muted) 45%, transparent)" }} />Belum berjalan</span>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(15rem,20rem)_1fr]">
           <div>
-            <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="text-sm uppercase tracking-[0.14em] text-slate-400 sm:text-base sm:tracking-[0.2em]">{tgl}</motion.p>
-            <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
-              className="mt-2 text-3xl font-bold sm:text-5xl">
-              {greeting(h)}, <span className="bg-gradient-to-r from-indigo-300 to-cyan-300 bg-clip-text text-transparent">{NAMA}</span>
-            </motion.h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }}
-              className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-base text-slate-400">
-              {dapRows.length > 0 ? (
-                <>
-                  <span><b className="text-slate-200">{dapRows.length}</b> toko DAP</span>
-                  <span className="text-slate-600">·</span>
-                  <span><b className="text-rose-300">{dapTren.turun}</b> turun</span>
-                  <span className="text-slate-600">·</span>
-                  <span><b className="text-emerald-300">{dapTren.naik}</b> naik</span>
-                  <span className="text-slate-600">·</span>
-                  <span>vs {MONTHS[bulan > 0 ? bulan - 1 : 11]}</span>
-                </>
-              ) : (
-                "Semangat mengejar target hari ini 🚀"
-              )}
-            </motion.p>
+            <div className="flex items-start gap-1">
+              <CountUp value={pcp} format={(v) => v.toFixed(1)} className="num-xl block text-[4.6rem] sm:text-[6.2rem]" />
+              <span className="mt-3 text-2xl font-light text-slate-400">%</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="chip-lime"><Icn e={badge.emoji} className="h-3 w-3" />{badge.label}</span>
+              <span className="text-[0.78rem] text-slate-400">dari target <span className="text-slate-200">{rpShort(tgt)}</span></span>
+            </div>
+            <dl className="mt-6 divide-y divide-white/10 text-[0.85rem]">
+              {[
+                ["Aktual", rp(act)],
+                ["Kejar 100%", rp(kejar)],
+                ["Trip", `${trip.jalan}/${trip.total}`],
+                ["Hari efektif", `${he.berjalan}/${he.total}`],
+              ].map(([k, v]) => (
+                <div key={k} className="flex items-center justify-between py-2">
+                  <dt className="lbl">{k}</dt>
+                  <dd className="mono tabular-nums">{v}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
-            className="text-right">
-            <p className="text-4xl font-extrabold tabular-nums tracking-tight sm:text-6xl">
-              {jam}<span className="animate-pulse text-indigo-300">:</span>{mnt}
-              <span className="text-2xl text-slate-400 sm:text-3xl">:{dtk}</span>
-            </p>
-            <p className="mt-1 text-sm uppercase tracking-widest text-slate-500">Waktu Indonesia Barat</p>
-          </motion.div>
+          <MatrixChart categories={MONTH_SHORT} series={[{ name: "Omset DAP", values: dapMonthly }]}
+            fmt={(v) => rpShort(v)} nowIndex={bulanIni} nowLabel="BULAN INI" height={290} />
         </div>
-      </div>
 
-      {/* Ringkasan cepat */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "PCP Bulan Ini", node: (
-            <div className="flex items-center gap-2">
-              <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="block text-3xl font-bold" />
-              <Icn e={badge.emoji} className="h-5 w-5" />
-            </div>) },
-          { label: "Aktual vs Target", node: (
-            <p className="text-base font-bold">
-              <span className="text-emerald-300"><CountUp value={act} format={rp} /></span>
-              <span className="text-slate-500"> / <CountUp value={tgt} format={rp} /></span>
-            </p>) },
-          { label: "Trip", node: <p className="text-3xl font-bold">{trip.jalan}<span className="text-slate-500">/{trip.total}</span></p> },
-          { label: "Hari Efektif", node: <p className="text-3xl font-bold">{he.berjalan}<span className="text-slate-500">/{he.total}</span></p> },
-        ].map((c, i) => (
-          <motion.div key={c.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.07 }}
-            className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-            <p className="text-sm uppercase tracking-wider text-slate-400">{c.label}</p>
-            <div className="mt-1">{c.node}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Ritme harian */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
-        className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-sm uppercase tracking-wider text-slate-400">Ritme yang dibutuhkan</p>
-        <p className="mt-1 text-xl font-bold">
-          {sisaHe > 0
-            ? <>Kejar <span className="text-amber-300">{rp(kejar)}</span> dalam <span className="text-indigo-300">{sisaHe} hari efektif</span> → ± <span className="text-emerald-300">{rp(ritme)}</span>/hari</>
-            : <>Bulan ini sudah selesai — siapkan target bulan depan! 🎯</>}
-        </p>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-          <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(pcp, 100)}%` }} transition={{ duration: 1.4, ease: "easeOut" }}
-            className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${badge.bg}, ${badge.color})` }} />
+        {/* Baris wawasan */}
+        <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-[var(--card-inner)] px-4 py-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#15161a] text-white dark:bg-[var(--lime)] dark:text-[#15161a]">
+            <Icn e="🎯" className="h-4 w-4" />
+          </span>
+          <p className="min-w-0 flex-1 text-[0.88rem]">
+            {sisaHe > 0
+              ? <><b className="font-medium">Perlu ±{rp(ritme)}/hari</b> <span className="text-slate-400">selama {sisaHe} hari efektif untuk mengejar {rp(kejar)}.</span></>
+              : <b className="font-medium">Bulan ini sudah selesai — siapkan target bulan depan!</b>}
+          </p>
+          <div className="h-1.5 w-28 overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(pcp, 100)}%` }} transition={{ duration: 1.2, ease: "easeOut" }}
+              className="h-full rounded-full bg-[var(--lime-deep)]" />
+          </div>
+          {me?.user.tabs.includes("bulanan") && <Link href="/bulanan" className="btn-ghost">Detail <span aria-hidden>→</span></Link>}
         </div>
-      </motion.div>
+      </motion.section>
 
       {/* Sorotan DAP: siapa yang perlu dikejar bulan ini */}
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-xl font-bold">Sorotan DAP</h2>
+            <h2 className="text-[1.15rem] font-medium">Sorotan DAP</h2>
             <FilterSelect
               value={bulan}
               onChange={(v) => setBulanPilih(Number(v))}
@@ -185,7 +169,7 @@ export default function BerandaPage() {
               <button
                 type="button"
                 onClick={() => setBulanPilih(null)}
-                className="text-sm font-medium text-indigo-300 transition-colors hover:text-indigo-200"
+                className="chip-soft"
               >
                 Bulan ini
               </button>
@@ -221,12 +205,12 @@ export default function BerandaPage() {
         {NAV.filter((n) => me?.user.tabs.includes(n.href.slice(1)) ?? false).map((n, i) => (
           <motion.div key={n.href} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.08 }}>
             <Link href={n.href}
-              className="group block rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition-all hover:-translate-y-1 hover:border-indigo-400/40 hover:shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+              className="group block rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
               <div className="flex items-center justify-between">
-                <Icn e={n.icon} className="h-7 w-7 text-indigo-300" />
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--raised)] shadow-[var(--raised-shadow)]"><Icn e={n.icon} className="h-5 w-5 text-indigo-300" /></span>
                 <span className="text-slate-500 transition-transform group-hover:translate-x-1">→</span>
               </div>
-              <p className="mt-3 text-lg font-bold">{n.title}</p>
+              <p className="mt-4 text-[1.05rem] font-medium">{n.title}</p>
               <p className="mt-1 text-sm text-slate-400">{n.desc}</p>
             </Link>
           </motion.div>
