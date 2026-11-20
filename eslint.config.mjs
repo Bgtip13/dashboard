@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Skrip uji Node (scripts/*.mts) bukan bagian aplikasi.
+    "scripts/**",
   ]),
 ]);
 
