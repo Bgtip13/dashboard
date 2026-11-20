@@ -10,11 +10,11 @@ const WEEK_LABELS = ["M1", "M2", "M3", "M4", "M5"];
 export default function WeeklyTable({ rows, weekIdx }: { rows: WeeklyRow[]; weekIdx: number[] }) {
   const { isDark } = useTheme();
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+    <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
       <div className="overflow-x-auto">
         <table className="w-full whitespace-nowrap text-base">
           <thead>
-            <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+            <tr className="border-b border-white/10 bg-white/5 text-left lbl">
               <th className="px-5 py-3.5">Jabatan</th>
               <th className="px-5 py-3.5">Area</th>
               <th className="px-5 py-3.5">Nama SDM</th>
