@@ -7,7 +7,7 @@ import type { SorotanToko } from "@/lib/dapSegment";
 type Mode = "bawah" | "kurang" | "turun";
 
 const WARNA: Record<Mode, string> = {
-  bawah: "text-amber-300",
+  bawah: "text-slate-100",
   kurang: "text-rose-300",
   turun: "text-rose-300",
 };
@@ -48,22 +48,23 @@ export default function SorotanTokoList({
     <motion.section
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5"
+      className="flex flex-col rounded-[1.8rem] border border-white/10 bg-white/[0.04] p-5"
     >
-      <div className="flex flex-wrap items-start justify-between gap-2">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm uppercase tracking-wider text-slate-400">{title}</p>
-          <p className="mt-0.5 text-[0.8rem] leading-snug text-slate-500">{hint}</p>
+          <h3 className="flex items-center gap-2 text-[1.05rem] font-medium">
+            {title}
+            <span className="chip-lime">{items.length}</span>
+          </h3>
+          <p className="mt-1 text-[0.78rem] leading-snug text-slate-500">{hint}</p>
         </div>
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[0.75rem] text-slate-300">
-          {items.length} toko
-        </span>
+        <Link href={href} className="btn-ghost shrink-0 !px-3 !py-1.5 !text-[0.78rem]">Lihat semua <span aria-hidden>→</span></Link>
       </div>
 
       {items.length === 0 ? (
-        <p className="mt-6 text-center text-sm text-slate-500">{empty}</p>
+        <p className="mt-6 rounded-2xl bg-[var(--card-inner)] px-4 py-6 text-center text-sm text-slate-500">{empty}</p>
       ) : (
-        <ol className="mt-2 divide-y divide-white/5">
+        <ol className="mt-4 space-y-2">
           {items.map((t, i) => {
             const b = baris(t, mode);
             return (
@@ -71,18 +72,18 @@ export default function SorotanTokoList({
                 <Link
                   href={`/dap?q=${encodeURIComponent(t.toko)}`}
                   title={`Buka ${t.toko} di DAP`}
-                  className="flex items-center gap-2.5 py-2 transition-colors hover:bg-white/5"
+                  className="flex items-center gap-3 rounded-2xl bg-[var(--card-inner)] px-3.5 py-2.5 transition-colors hover:bg-[var(--raised)] hover:shadow-[var(--raised-shadow)]"
                 >
-                  <span className="w-4 shrink-0 text-right text-[0.75rem] tabular-nums text-slate-500">{i + 1}</span>
+                  <span className="kbd w-6 shrink-0 text-center">{i + 1}</span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-100">{t.toko}</span>
-                    <span className="block truncate text-[0.75rem] text-slate-500">
+                    <span className="block truncate text-[0.9rem] font-medium">{t.toko}</span>
+                    <span className="mono block truncate text-[0.66rem] uppercase tracking-wide text-slate-500">
                       {t.area} · {t.kabupaten}{t.adm ? ` · ADM ${t.adm}` : ""}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className={`block text-sm font-bold tabular-nums ${warna}`}>{b.utama}</span>
-                    <span className="block text-[0.75rem] tabular-nums text-slate-500">{b.sub}</span>
+                    <span className={`block text-[0.9rem] font-semibold tabular-nums ${warna}`}>{b.utama}</span>
+                    <span className="mono block text-[0.66rem] tabular-nums text-slate-500">{b.sub}</span>
                   </span>
                 </Link>
               </li>
@@ -91,9 +92,9 @@ export default function SorotanTokoList({
         </ol>
       )}
 
-      <Link href={href} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-300 hover:text-indigo-200">
-        Lihat semua di DAP →
-      </Link>
+      <p className="mono mt-4 text-[0.64rem] uppercase tracking-[0.12em] text-slate-500">
+        Top {items.length} · klik baris untuk buka di DAP
+      </p>
     </motion.section>
   );
 }
