@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { waktuSingkat } from "@/lib/catatan";
 import { TAB_LIST, ALL_TAB_KEYS } from "@/lib/tabs";
+import PageHeader from "@/components/PageHeader";
 
 type U = { id: string; nama: string; role: "admin" | "user"; dibuat: number; tabs: string[] };
 
@@ -120,13 +121,10 @@ export default function PenggunaPage() {
 
   return (
     <div className="space-y-8 py-8">
-      <div>
-        <h1 className="text-3xl font-bold">Pengguna</h1>
-        <p className="text-sm text-slate-400">Tambah akun, ubah password, atur tab yang boleh dibuka tiap akun, atau hapus akun.</p>
-      </div>
+      <PageHeader crumb="Pengguna" title="Pengguna" sub="Tambah akun, ubah password, atur tab yang boleh dibuka tiap akun, atau hapus akun." />
 
-      <form onSubmit={tambah} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-        <p className="text-sm uppercase tracking-wider text-slate-400">Tambah user</p>
+      <form onSubmit={tambah} className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+        <p className="lbl">Tambah user</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <input value={id} onChange={(e) => setId(e.target.value)} placeholder="ID (mis. andi)"
             autoCapitalize="none" autoComplete="off" className={`${input} w-40`} />
@@ -148,11 +146,11 @@ export default function PenggunaPage() {
         )}
       </form>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+      <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
         <div className="tbl-scroll">
           <table className="w-full text-base">
             <thead>
-              <tr className="border-b border-white/10 bg-white/5 text-left text-sm uppercase tracking-wider text-slate-400">
+              <tr className="border-b border-white/10 bg-white/5 text-left lbl">
                 <th className="px-5 py-3.5">ID</th>
                 <th className="px-5 py-3.5">Nama</th>
                 <th className="px-5 py-3.5">Peran</th>
