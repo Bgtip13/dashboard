@@ -3,12 +3,12 @@ export interface BadgeInfo { emoji: string; label: string; color: string; bg: st
 /** Warna teks badge yang lebih gelap agar terbaca di atas latar terang */
 const LIGHT_TONE: Record<string, string> = {
   "#facc15": "#a16207",
-  "#f87171": "#b91c1c",
+  "#f87171": "#cc3a2f",
   "#fb923c": "#c2410c",
-  "#60a5fa": "#1d4ed8",
+  "#a9acb6": "#3a3d46",
   "#fbbf24": "#b45309",
-  "#5eead4": "#0f766e",
-  "#34d399": "#047857",
+  "#b4d321": "#4a6b05",
+  "#34d399": "#4a6b05",
   "#94a3b8": "#475569",
 };
 
@@ -32,9 +32,9 @@ const AREA_DAYS: Record<Area, number[]> = {
 const MIN_SLOTS = 3;
 
 const MOTIVASI = {
-  MULAI:   { emoji: "🌱", label: "Yuk Mulai!",     color: "#5eead4", bg: "#134e4a" },
+  MULAI:   { emoji: "🌱", label: "Yuk Mulai!",     color: "#b4d321", bg: "#3a4a05" },
   LANJUT:  { emoji: "✨", label: "Lanjutkan!",     color: "#facc15", bg: "#713f12" },
-  KENCANG: { emoji: "🚀", label: "Start Kencang!", color: "#60a5fa", bg: "#1e3a8a" },
+  KENCANG: { emoji: "🚀", label: "Start Kencang!", color: "#a9acb6", bg: "#3a3d46" },
 };
 
 /** Urut dari yang paling perlu perhatian ke yang terbaik. */
@@ -42,7 +42,7 @@ const PERF: BadgeInfo[] = [
   { emoji: "⚠️", label: "Perlu Perhatian", color: "#f87171", bg: "#7f1d1d" },
   { emoji: "📉", label: "Perlu Dorongan",  color: "#fb923c", bg: "#7c2d12" },
   { emoji: "🎯", label: "On Pace",         color: "#facc15", bg: "#713f12" },
-  { emoji: "🌟", label: "Di Atas Ritme",   color: "#60a5fa", bg: "#1e3a8a" },
+  { emoji: "🌟", label: "Di Atas Ritme",   color: "#a9acb6", bg: "#3a3d46" },
   { emoji: "🏆", label: "Outstanding",     color: "#fbbf24", bg: "#78350f" },
 ];
 

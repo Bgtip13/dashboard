@@ -20,7 +20,7 @@ export const KATEGORI: Record<Kategori, KategoriInfo> = {
   AKTIF: {
     label: "Ada transaksi",
     short: "Ada transaksi",
-    color: "#34d399",
+    color: "#b4d321",
     desc: "Ada penjualan di bulan terpilih",
   },
   BERHENTI: {
@@ -33,14 +33,14 @@ export const KATEGORI: Record<Kategori, KategoriInfo> = {
   IDLE2: {
     label: "Tidak order ≥ 2 bulan",
     short: "≥ 2 bln kosong",
-    color: "#fb7185",
+    color: "#ee5a4e",
     desc: "Tidak transaksi bulan terpilih dan bulan sebelumnya",
     rugi: true,
   },
   BELUM: {
     label: "Belum pernah transaksi",
     short: "Belum pernah",
-    color: "#60a5fa",
+    color: "#a9acb6",
     desc: "Belum ada penjualan sampai bulan terpilih — dihitung sebagai potensi baru, bukan kerugian",
   },
   TUTUP: {
