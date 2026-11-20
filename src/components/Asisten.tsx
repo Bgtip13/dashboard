@@ -4,10 +4,13 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  actionUrl, EMPTY_OPTIONS, isStopCommand,
+  actionUrl, EMPTY_OPTIONS, isStopCommand, TIDAK_PAHAM,
   type AsistenAction, type AsistenOptions, type AsistenResult,
 } from "@/lib/asisten";
 import { buildSnapshot } from "@/lib/asistenSnapshot";
+import { perluAnalis } from "@/lib/bisnis/intent";
+import type { Konteks, Tampilan } from "@/lib/bisnis/engine";
+import AsistenTampilan from "./AsistenTampilan";
 import {
   VOICE_LANG, cancelSpeech, currentVoice, getRecognitionCtor, micSupported, playError, playReady,
   playThinking, recognitionErrorText, speak, ttsSupported, watchVoices,
@@ -16,7 +19,8 @@ import {
 import Icn from "./Icn";
 import FridayLogo from "./FridayLogo";
 
-type Msg = { id: number; role: "user" | "ai"; text: string; action?: AsistenAction | null };
+type Msg = { id: number; role: "user" | "ai"; text: string; action?: AsistenAction | null; tampilan?: Tampilan[] };
+type Balasan = AsistenResult & { error?: string; tampilan?: Tampilan[]; konteks?: Konteks };
 
 type DapCache = { rows?: { area?: string; kabupaten?: string; kecamatan?: string }[] };
 type ProdukCache = { rows?: { area?: string; kategori?: string; brand?: string }[] };
@@ -32,6 +36,8 @@ const SARAN = [
   "Toko omset tertinggi kabupaten Sleman",
   "Berapa pencapaian bulan ini?",
   "Produk qty terbanyak brand Me-o",
+  "Berapa omzet minggu ini dibanding minggu lalu?",
+  "Toko mana yang omzetnya paling turun bulan ini?",
 ];
 
 /** Preferensi tersimpan; server tidak punya localStorage. */
@@ -105,6 +111,9 @@ export default function Asisten() {
 
   const listRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
+  // Konteks percakapan Analis (toko/produk/periode) + riwayat singkat untuk pertanyaan lanjutan.
+  const konteksRef = useRef<Konteks>({});
+  const riwayatRef = useRef<{ role: "user" | "assistant"; content: string }[]>([]);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const router = useRouter();
   const qc = useQueryClient();
@@ -207,19 +216,53 @@ export default function Asisten() {
     if (voiceOutRef.current) playThinking();
 
     try {
-      const res = await fetch("/api/asisten", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text,
-          options: collectOptions(qc),
-          snapshot: buildSnapshot(qc),
-        }),
-      });
-      const data = (await res.json()) as AsistenResult & { error?: string };
-      if (!res.ok) throw new Error(data.error || "Asisten sedang tidak bisa dihubungi.");
+      const adaKonteks = Boolean(konteksRef.current.toko || konteksRef.current.produk || konteksRef.current.periode);
 
-      pushMsg({ id: nextId(), role: "ai", text: data.reply, action: data.action });
+      // Jalur Analis (analisis bisnis & rekomendasi sales) — hanya untuk pertanyaan analitik.
+      const panggilAnalis = async (): Promise<Balasan> => {
+        const r = await fetch("/api/asisten/analis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text, history: riwayatRef.current.slice(-8), konteks: konteksRef.current }),
+        });
+        const j = (await r.json()) as Balasan;
+        if (!r.ok) throw new Error(j.error || "Analis sedang tidak bisa dihubungi.");
+        if (j.konteks) konteksRef.current = j.konteks;
+        return j;
+      };
+      // Jalur lama (navigasi + jawaban angka ringkas) — tidak diubah.
+      const panggilLama = async (): Promise<Balasan> => {
+        const r = await fetch("/api/asisten", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            options: collectOptions(qc),
+            snapshot: buildSnapshot(qc),
+          }),
+        });
+        const j = (await r.json()) as Balasan;
+        if (!r.ok) throw new Error(j.error || "Asisten sedang tidak bisa dihubungi.");
+        return j;
+      };
+
+      let data: Balasan;
+      if (perluAnalis(text, adaKonteks)) {
+        data = await panggilAnalis();
+      } else {
+        data = await panggilLama();
+        // Parser lama tidak paham → coba Analis sebelum menyerah.
+        if (!data.action && data.reply === TIDAK_PAHAM) {
+          try { data = await panggilAnalis(); } catch { /* tetap pakai jawaban lama */ }
+        }
+      }
+      riwayatRef.current = [
+        ...riwayatRef.current,
+        { role: "user" as const, content: text },
+        { role: "assistant" as const, content: data.reply.slice(0, 600) },
+      ].slice(-8);
+
+      pushMsg({ id: nextId(), role: "ai", text: data.reply, action: data.action, tampilan: data.tampilan });
       if (voiceOutRef.current) playReady();
       if (data.action) router.push(actionUrl(data.action));
 
@@ -229,7 +272,11 @@ export default function Asisten() {
       };
 
       if (voiceOutRef.current) {
-        const spoken = speak(data.reply, {
+        // Jawaban analis bisa panjang: bacakan ringkasannya saja, rincian ada di layar.
+        const ucap = data.tampilan?.length
+          ? (data.reply.match(/^[^\n]*?[.!?](\s|$)/)?.[0] ?? data.reply).slice(0, 320)
+          : data.reply;
+        const spoken = speak(ucap, {
           onStart: () => setSpeaking(true),
           onEnd: () => {
             setSpeaking(false);
@@ -451,13 +498,14 @@ export default function Asisten() {
               {messages.map((m) => (
                 <div key={m.id} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
                   <div
-                    className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                    className={`${m.tampilan?.length ? "max-w-[96%]" : "max-w-[88%]"} rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                       m.role === "user"
                         ? "bg-indigo-500/25 text-slate-100"
                         : "border border-white/10 bg-white/[0.05] text-slate-200"
                     }`}
                   >
                     <p className="whitespace-pre-line">{m.text}</p>
+                    {m.tampilan?.map((t, i) => <AsistenTampilan key={i} t={t} />)}
                     {m.action && (
                       <button
                         onClick={() => { if (m.action) router.push(actionUrl(m.action)); }}
