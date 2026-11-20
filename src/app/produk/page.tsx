@@ -4,7 +4,7 @@ import { Suspense, useDeferredValue, useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { rp } from "@/lib/utils";
-import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan, formatTanggal, rentangHari, tambahHari } from "@/lib/produk";
+import { NAMA_BULAN, SEMUA_BULAN, fetchProdukSemuaBulan, formatTanggal, rentangHari, tambahHari, type ProdukRow } from "@/lib/produk";
 import CountUp from "@/components/CountUp";
 import Icn from "@/components/Icn";
 import BrandLogo from "@/components/BrandLogo";
@@ -18,8 +18,6 @@ const PAGE_SIZE = 25;
 const CHART_TOP = 10; // ← jumlah batang grafik
 const TREN_PRODUK_GARIS = 5;  // ← jumlah produk (garis) pada tren per produk
 const TREN_PRODUK_TABEL = 10; // ← jumlah baris tabel ranking produk
-
-const uniqSorted = (xs: string[]) => Array.from(new Set(xs.filter(Boolean))).sort();
 
 // Warna pill area — senada dengan warna chart Mingguan
 const AREA_STYLE: Record<string, string> = {
@@ -137,9 +135,6 @@ function ProdukPageContent() {
   const [trenCari, setTrenCari] = useState(""); // nama barang / brand untuk grafik tren
 
   const rows = data?.rows ?? [];
-  const areas = useMemo(() => uniqSorted(rows.map((r) => r.area)), [rows]);
-  const kategoris = useMemo(() => uniqSorted(rows.map((r) => r.kategori)), [rows]);
-  const brands = useMemo(() => uniqSorted(rows.map((r) => r.brand)), [rows]);
 
   // Tanggal paling awal / akhir di seluruh tab + daftar tanggal yang punya transaksi (untuk kalender & grafik harian)
   const [tglMin, tglMax, tanggalAda] = useMemo(() => {
@@ -154,26 +149,12 @@ function ProdukPageContent() {
     return [lo, hi, ada] as const;
   }, [semua]);
 
-  // Filter yang tidak ada di data (mis. sisa perintah asisten) otomatis dianggap "ALL"
-  const areaEff = area !== "ALL" && areas.length > 0 && !areas.includes(area) ? "ALL" : area;
-  const kategoriEff = kategori !== "ALL" && kategoris.length > 0 && !kategoris.includes(kategori) ? "ALL" : kategori;
-  const brandEff = brand !== "ALL" && brands.length > 0 && !brands.includes(brand) ? "ALL" : brand;
-
-  // Daftar toko (kolom "Pelanggan") mengikuti area yang dipilih supaya daftarnya tidak terlalu panjang
-  const tokos = useMemo(
-    () => uniqSorted(rows.filter((r) => areaEff === "ALL" || r.area === areaEff).map((r) => r.pelanggan)),
-    [rows, areaEff],
-  );
-  const tokoEff = toko !== "ALL" && tokos.length > 0 && !tokos.includes(toko) ? "ALL" : toko;
-
+  // Kotak cari & rentang tanggal tidak bergantung pada filter dropdown → disaring sekali di sini,
+  // lalu dipakai bersama oleh daftar opsi filter dan tabel/grafik.
   const cariTunda = useDeferredValue(cari);
-  const filtered = useMemo(() => {
+  const baseRows = useMemo(() => {
     const terms = cariTunda.trim().toLowerCase().split(/\s+/).filter(Boolean);
     return rows.filter((r) => {
-      if (areaEff !== "ALL" && r.area !== areaEff) return false;
-      if (kategoriEff !== "ALL" && r.kategori !== kategoriEff) return false;
-      if (brandEff !== "ALL" && r.brand !== brandEff) return false;
-      if (tokoEff !== "ALL" && r.pelanggan !== tokoEff) return false;
       if (dari || sampai) {
         // baris tanpa tanggal tidak ikut saat filter tanggal aktif
         if (!r.tanggal) return false;
@@ -184,7 +165,53 @@ function ProdukPageContent() {
       const hay = `${r.barang} ${r.pelanggan} ${r.kecamatan} ${r.kabupaten} ${r.brand}`.toLowerCase();
       return terms.every((t) => hay.includes(t));
     });
-  }, [rows, areaEff, kategoriEff, brandEff, tokoEff, cariTunda, dari, sampai]);
+  }, [rows, cariTunda, dari, sampai]);
+
+  // Filter saling menyesuaikan (cascading): opsi tiap dropdown hanya berisi nilai yang masih ada
+  // datanya setelah filter LAIN diterapkan. Contoh: pilih toko "Mechin Petshop" → Kategori & Brand
+  // hanya yang pernah diambil toko itu; pilih brand → Toko hanya yang mengambil brand itu.
+  // Pilihan yang sudah tidak punya data (mis. setelah ganti bulan/tanggal atau sisa perintah asisten)
+  // otomatis kembali ke "ALL".
+  const { areaEff, kategoriEff, brandEff, tokoEff, areas, kategoris, brands, tokos } = useMemo(() => {
+    type K = "area" | "kategori" | "brand" | "toko";
+    const keys: K[] = ["area", "kategori", "brand", "toko"];
+    const val: Record<K, (r: ProdukRow) => string> = {
+      area: (r) => r.area, kategori: (r) => r.kategori, brand: (r) => r.brand, toko: (r) => r.pelanggan,
+    };
+    const cur: Record<K, string> = { area, kategori, brand, toko };
+    const opsi = {} as Record<K, string[]>;
+    const hitung = (k: K) => {
+      const set = new Set<string>();
+      for (const r of baseRows) {
+        let ok = true;
+        for (const o of keys) {
+          if (o !== k && cur[o] !== "ALL" && val[o](r) !== cur[o]) { ok = false; break; }
+        }
+        if (ok) { const v = val[k](r); if (v) set.add(v); }
+      }
+      return Array.from(set).sort();
+    };
+    // Ulangi sampai stabil (maks. 5×): mengubah satu pilihan jadi ALL bisa melebarkan opsi lainnya
+    for (let n = 0; n < 5; n++) {
+      let berubah = false;
+      for (const k of keys) {
+        opsi[k] = hitung(k);
+        if (cur[k] !== "ALL" && baseRows.length > 0 && !opsi[k].includes(cur[k])) { cur[k] = "ALL"; berubah = true; }
+      }
+      if (!berubah) break;
+    }
+    return {
+      areaEff: cur.area, kategoriEff: cur.kategori, brandEff: cur.brand, tokoEff: cur.toko,
+      areas: opsi.area, kategoris: opsi.kategori, brands: opsi.brand, tokos: opsi.toko,
+    };
+  }, [baseRows, area, kategori, brand, toko]);
+
+  const filtered = useMemo(() => baseRows.filter((r) =>
+    (areaEff === "ALL" || r.area === areaEff) &&
+    (kategoriEff === "ALL" || r.kategori === kategoriEff) &&
+    (brandEff === "ALL" || r.brand === brandEff) &&
+    (tokoEff === "ALL" || r.pelanggan === tokoEff),
+  ), [baseRows, areaEff, kategoriEff, brandEff, tokoEff]);
 
   // Reset ke halaman pertama saat filter berubah (pola adjust-state-saat-render,
   // supaya tidak memicu render berantai lewat effect).
