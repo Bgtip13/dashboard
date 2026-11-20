@@ -27,7 +27,7 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
     legend: { top: 0, textStyle: { color: txt, fontSize: 17 }, data: ["Penjualan", "Qty"] },
     tooltip: {
       trigger: "axis",
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: strong, fontSize: 17 },
       valueFormatter: (v) => (v == null || v === "-" ? "belum ada data" : num(v)),
@@ -51,13 +51,13 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
       },
       {
         type: "value", position: "right", splitLine: { show: false },
-        axisLabel: { color: "#22d3ee", fontSize: 17, formatter: (v: number) => v.toLocaleString("id-ID") },
+        axisLabel: { color: isDark ? "#b4d321" : "#6f727d", fontSize: 17, formatter: (v: number) => v.toLocaleString("id-ID") },
       },
     ],
     series: [
       {
         name: "Qty", type: "bar", yAxisIndex: 1, data: cfg.dual.qty, barMaxWidth: 38,
-        itemStyle: { color: "rgba(34,211,238,0.38)", borderRadius: [6, 6, 0, 0] },
+        itemStyle: { color: isDark ? "rgba(220,245,95,0.35)" : "rgba(21,22,26,0.16)", borderRadius: [6, 6, 0, 0] },
         label: {
           show: cfg.labels.length <= 15, position: "insideBottom", color: strong, fontSize: 16, fontWeight: 600,
           formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : Number(p.value).toLocaleString("id-ID")),
@@ -65,8 +65,8 @@ function optionDual(cfg: ProdukTrenConfig & { dual: NonNullable<ProdukTrenConfig
       },
       {
         name: "Penjualan", type: "line", yAxisIndex: 0, data: cfg.dual.penjualan, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 6 : 10,
-        lineStyle: { width: 3, color: "#3b82f6" },
-        itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
+        lineStyle: { width: 2.5, color: (isDark ? "#dcf55f" : "#15161a") },
+        itemStyle: { color: "#dcf55f", borderColor: (isDark ? "#dcf55f" : "#15161a"), borderWidth: 2 },
         label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 17, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : uang(Number(p.value))) },
       },
     ],
@@ -86,7 +86,7 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
     tooltip: {
       trigger: "axis",
       valueFormatter: (v) => (v == null || v === "-" ? "belum ada data" : fmt(Number(v))),
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 17 },
     },
@@ -102,11 +102,11 @@ function option(cfg: ProdukTrenConfig, isDark: boolean, full: boolean): EChartsO
     },
     series: [{
       type: "line", data: cfg.values, connectNulls: false, symbol: "circle", symbolSize: cfg.labels.length > 31 ? 6 : 10,
-      lineStyle: { width: 3, color: "#3b82f6" },
-      itemStyle: { color: "#22d3ee", borderColor: "#3b82f6", borderWidth: 2 },
+      lineStyle: { width: 2.5, color: (isDark ? "#dcf55f" : "#15161a") },
+      itemStyle: { color: "#dcf55f", borderColor: (isDark ? "#dcf55f" : "#15161a"), borderWidth: 2 },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "rgba(99,102,241,0.35)" }, { offset: 1, color: "rgba(34,211,238,0.02)" },
+          { offset: 0, color: isDark ? "rgba(220,245,95,0.25)" : "rgba(21,22,26,0.12)" }, { offset: 1, color: "rgba(21,22,26,0.0)" },
         ]),
       },
       label: { show: cfg.labels.length <= 15, position: "top", color: strong, fontSize: 17, fontWeight: 600, formatter: (p) => (p.value == null || (cfg.harian && p.value === 0) ? "" : fmt(Number(p.value))) },

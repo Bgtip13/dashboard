@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 /** Pembungkus baris filter — satu gaya di semua halaman */
 export function FilterBar({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`flex flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 ${className}`}>
       {children}
     </div>
   );

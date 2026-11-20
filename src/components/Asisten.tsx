@@ -372,9 +372,9 @@ export default function Asisten() {
         onClick={() => { if (open) tutupPanel(); else setOpen(true); }}
         aria-expanded={open}
         aria-label={open ? "Tutup F.R.I.D.A.Y" : "Buka F.R.I.D.A.Y"}
-        className="fixed bottom-24 right-5 z-50 sm:bottom-5 flex items-center justify-center gap-1.5 rounded-full border border-cyan-300/35 bg-[#0b1020]/95 p-2 text-white shadow-[0_10px_30px_rgba(34,211,238,0.22)] backdrop-blur transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-5 z-50 sm:bottom-5 flex items-center justify-center gap-1.5 rounded-full border border-white/10 bg-[#15161a] p-2 text-white shadow-[0_14px_30px_-10px_rgba(21,22,26,0.6)] transition-transform hover:scale-105 active:scale-95"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/15 to-indigo-500/20 ring-1 ring-cyan-300/30">
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400/15 to-indigo-500/20 ring-1 ring-indigo-300/30">
           <FridayLogo size={28} active={busy || open || speaking} />
         </span>
         <span
@@ -394,8 +394,8 @@ export default function Asisten() {
             transition={{ type: "spring", stiffness: 380, damping: 32 }}
             className="fixed bottom-40 right-5 z-50 sm:bottom-20 flex max-h-[min(640px,calc(100dvh-13rem))] sm:max-h-[min(640px,calc(100vh-8rem))] w-[min(94vw,430px)] flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--panel-bg)] shadow-2xl backdrop-blur"
           >
-            <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-cyan-500/[0.06] to-transparent px-4 py-3.5">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--logo-bg)] ring-1 ring-cyan-300/25">
+            <div className="flex items-center gap-3 border-b border-white/10 bg-gradient-to-r from-indigo-500/[0.06] to-transparent px-4 py-3.5">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--logo-bg)] ring-1 ring-indigo-300/25">
                 <FridayLogo size={32} active={busy || open || speaking || listening} />
               </span>
               <div className="min-w-0 flex-1">
@@ -419,7 +419,7 @@ export default function Asisten() {
                     : "Suara jawaban nonaktif"}
                   className={`rounded-lg border px-2.5 py-1.5 text-sm transition-colors ${
                     voiceOut
-                      ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-300"
+                      ? "border-indigo-300/35 bg-indigo-400/10 text-indigo-300"
                       : "border-white/10 text-slate-400 hover:bg-white/5 hover:text-slate-200"
                   }`}
                 >
@@ -433,12 +433,12 @@ export default function Asisten() {
             <div ref={listRef} className="flex-1 space-y-2.5 overflow-y-auto px-3.5 py-3.5">
               {messages.length === 0 && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 text-sm leading-relaxed text-slate-300">
-                  {sapaWaktu()}, Bos. <span className="font-semibold tracking-wide text-cyan-300">F.R.I.D.A.Y</span> online
+                  {sapaWaktu()}, Bos. <span className="font-semibold tracking-wide text-indigo-300">F.R.I.D.A.Y</span> online
                   dan semua sistem siap. Data PCP sudah terhubung.
                   <br />
                   Mau saya bukakan halaman atau data yang mana? Contohnya
-                  <span className="text-cyan-300"> “buka penjualan yang turun bulan ini”</span> atau
-                  <span className="text-cyan-300"> “buka DAP toko tanpa transaksi di Semarang”</span>.
+                  <span className="text-indigo-300"> “buka penjualan yang turun bulan ini”</span> atau
+                  <span className="text-indigo-300"> “buka DAP toko tanpa transaksi di Semarang”</span>.
                   {canListen && (
                     <>
                       <br />
@@ -499,7 +499,7 @@ export default function Asisten() {
                 <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-3.5 py-2 text-[0.72rem] text-slate-400">
                   <span className="flex min-w-0 items-center gap-1.5">
                     {listening || speaking || busy ? (
-                      <VoiceBars tone={listening ? "bg-rose-400" : speaking ? "bg-cyan-400" : "bg-indigo-400"} />
+                      <VoiceBars tone={listening ? "bg-rose-400" : speaking ? "bg-indigo-400" : "bg-indigo-400"} />
                     ) : (
                       <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-500" />
                     )}
@@ -513,7 +513,7 @@ export default function Asisten() {
                       title="Mikrofon aktif lagi otomatis setiap kali F.R.I.D.A.Y selesai menjawab"
                       className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 transition-colors ${
                         handsFree
-                          ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-300"
+                          ? "border-indigo-300/35 bg-indigo-400/10 text-indigo-300"
                           : "border-white/10 text-slate-400 hover:text-slate-200"
                       }`}
                     >
@@ -538,7 +538,7 @@ export default function Asisten() {
                     className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-colors disabled:opacity-40 ${
                       listening
                         ? "animate-pulse border-rose-400/50 bg-rose-500/20 text-rose-300"
-                        : "border-white/10 bg-white/5 text-slate-300 hover:border-cyan-300/40 hover:text-cyan-300"
+                        : "border-white/10 bg-white/5 text-slate-300 hover:border-indigo-300/40 hover:text-indigo-300"
                     }`}
                   >
                     <Icn e="🎤" className="h-5 w-5" />
@@ -552,7 +552,7 @@ export default function Asisten() {
                   className="h-12 min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3.5 text-sm text-slate-200 outline-none transition-colors placeholder:text-slate-500 focus:border-indigo-400/60"
                 />
                 <button type="submit" disabled={busy || !input.trim()}
-                  className="flex h-12 items-center gap-1 rounded-xl bg-indigo-500/90 px-4 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-40">
+                  className="flex h-12 items-center gap-1 rounded-xl bg-[#15161a] px-4 text-sm font-semibold text-white transition-colors hover:bg-black disabled:opacity-40 dark:bg-[var(--lime)] dark:text-[#15161a]">
                   <Icn e="➤" className="h-4 w-4" />
                 </button>
               </form>

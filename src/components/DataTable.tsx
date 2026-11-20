@@ -62,7 +62,7 @@ export default function DataTable<T>({
   const clickable = onRowClick ? "cursor-pointer" : "";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.04]">
+    <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
       {(toolbar || toolbarRight) && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
           <div className="min-w-0">{toolbar}</div>

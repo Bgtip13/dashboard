@@ -11,7 +11,7 @@ export interface ProdukMultiConfig {
   metric: "penjualan" | "qty";
 }
 
-export const WARNA_PRODUK = ["#3b82f6", "#22d3ee", "#a78bfa", "#f59e0b", "#34d399", "#f472b6", "#fb7185", "#94a3b8"];
+export const WARNA_PRODUK = ["#5b5f6b", "#b4d321", "#8b8f9a", "#ee5a4e", "#c9a227", "#5d8a0a", "#a9acb6", "#d97a3a"];
 
 const potong = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -33,7 +33,7 @@ function option(cfg: ProdukMultiConfig, isDark: boolean): EChartsOption {
     },
     tooltip: {
       trigger: "axis",
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: strong, fontSize: 17 },
       formatter: (params) => {

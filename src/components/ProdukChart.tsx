@@ -50,7 +50,7 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
         const esc = it.name.replace(/&/g, "&amp;").replace(/</g, "&lt;");
         return `<b>${esc}</b><br/>Penjualan: <b>${rp(it.penjualan)}</b><br/>Qty: <b>${it.qty.toLocaleString("id-ID")}</b>`;
       },
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 17 },
     },
@@ -77,10 +77,10 @@ function option(cfg: ProdukChartConfig, isDark: boolean, L: Layout): EChartsOpti
       itemStyle: {
         borderRadius: [0, 6, 6, 0],
         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: "#3b82f6" }, { offset: 1, color: "#22d3ee" },
+          { offset: 0, color: isDark ? "#dcf55f" : "#15161a" }, { offset: 1, color: isDark ? "#b4d321" : "#6f727d" },
         ]),
       },
-      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(34,211,238,0.5)" } },
+      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: "rgba(21,22,26,0.25)" } },
       label: {
         show: true, position: "right", color: isDark ? "#f1f5f9" : "#0f172a", fontSize: 18, fontWeight: 600,
         formatter: (p) => labelTxt(cfg.items[p.dataIndex]),
