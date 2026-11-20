@@ -14,7 +14,7 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
     tooltip: {
       trigger: "axis", valueFormatter: (v) => rpShort(Number(v)),
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 13 },
     },
@@ -34,12 +34,12 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
     series: [
       {
         name: "Aktual", type: "bar", data: values, barMaxWidth: 16,
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#22d3ee" }, { offset: 1, color: "#3b82f6" }]) },
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: isDark ? "#b4d321" : "#8a8d99" }, { offset: 1, color: isDark ? "#dcf55f" : "#15161a" }]) },
         markPoint: {
           data: [{ type: "max", name: "Terbaik" }],
-          symbolSize: 50, itemStyle: { color: "#f59e0b" },
+          symbolSize: 50, itemStyle: { color: "#dcf55f" },
           label: {
-            color: "#78350f", fontWeight: 800, fontSize: 12,
+            color: "#15161a", fontWeight: 800, fontSize: 12,
             formatter: (p: { value: unknown }) => {
               const n = Number(p.value);
               return isFinite(n) ? rpShort(n) : "";
@@ -50,7 +50,7 @@ function option(values: number[], target: number, isDark: boolean): EChartsOptio
       {
         name: "Target/bulan", type: "line", data: values.map(() => target),
         symbol: "none",
-        lineStyle: { width: 2, type: "dashed", color: "#f59e0b" },
+        lineStyle: { width: 2, type: "dashed", color: isDark ? "#dcf55f" : "#15161a" },
       },
     ],
     animationDuration: 1100, animationDurationUpdate: 800, animationEasingUpdate: "cubicOut",

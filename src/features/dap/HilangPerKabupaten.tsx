@@ -15,14 +15,14 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
     tooltip: {
       trigger: "item",
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: txt1, fontSize: 13 },
       formatter: (p: unknown) => {
         const d = p as { value?: number; dataIndex?: number };
         const row = data[d.dataIndex ?? 0];
         if (!row) return "";
-        return `<b>${row.kabupaten}</b><br/>Hilang: <span style="color:#fb7185">${rpShort(row.nominal)}</span><br/>${row.toko} toko tanpa transaksi`;
+        return `<b>${row.kabupaten}</b><br/>Hilang: <span style="color:#ee5a4e">${rpShort(row.nominal)}</span><br/>${row.toko} toko tanpa transaksi`;
       },
     },
     grid: { left: 8, right: 72, top: 8, bottom: 8, containLabel: true },
@@ -47,8 +47,8 @@ function option(data: HilangKab[], isDark: boolean): EChartsOption {
         itemStyle: {
           borderRadius: [0, 5, 5, 0],
           color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: "rgba(251,113,133,0.35)" },
-            { offset: 1, color: "#fb7185" },
+            { offset: 0, color: "rgba(238,90,78,0.3)" },
+            { offset: 1, color: "#ee5a4e" },
           ]),
         },
       })),

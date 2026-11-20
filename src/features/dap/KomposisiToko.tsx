@@ -15,7 +15,7 @@ function option(ringkas: Ringkasan, isDark: boolean): EChartsOption {
     textStyle: { fontFamily: "SF Pro Display, Segoe UI, sans-serif" },
     tooltip: {
       trigger: "item",
-      backgroundColor: isDark ? "rgba(15,23,42,0.95)" : "#ffffff",
+      backgroundColor: isDark ? "rgba(28,29,33,0.96)" : "#ffffff",
       borderColor: isDark ? "rgba(148,163,184,0.2)" : "rgba(15,23,42,0.15)",
       textStyle: { color: isDark ? "#e2e8f0" : "#0f172a", fontSize: 12 },
       formatter: (p: unknown) => {
@@ -30,7 +30,7 @@ function option(ringkas: Ringkasan, isDark: boolean): EChartsOption {
       avoidLabelOverlap: true,
       label: { show: false },
       labelLine: { show: false },
-      itemStyle: { borderColor: isDark ? "#0b1020" : "#ffffff", borderWidth: 2 },
+      itemStyle: { borderColor: isDark ? "#1a1b1f" : "#f3f4f7", borderWidth: 2 },
       emphasis: { scale: true, scaleSize: 5 },
       data: slices.map((s) => ({ name: s.name, value: s.value, itemStyle: { color: s.color } })),
       animationDuration: 900,

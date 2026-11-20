@@ -16,9 +16,9 @@ type Enriched = DapRow & {
 
 function statusColor(s: string) {
   const n = s.toUpperCase();
-  if (n.includes("LANCAR")) return { color: "#4ade80", bg: "#14532d" };
+  if (n.includes("LANCAR")) return { color: "#b4d321", bg: "#3a4a05" };
   if (n.includes("PASIF") || n.includes("DO NOT")) return { color: "#f87171", bg: "#7f1d1d" };
-  if (n.includes("BARU") || n.includes("GANTI")) return { color: "#60a5fa", bg: "#1e3a8a" };
+  if (n.includes("BARU") || n.includes("GANTI")) return { color: "#a9acb6", bg: "#3a3d46" };
   return { color: "#94a3b8", bg: "#1e293b" };
 }
 
@@ -125,7 +125,7 @@ export default function DapTable({
 
   const td = `whitespace-nowrap ${LEVEL.pad} py-2`;
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+    <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5 text-sm text-slate-400">
         <span>
           <b className="text-slate-200">{view.length}</b> dari <b className="text-slate-200">{sorted.length}</b> toko
