@@ -26,7 +26,7 @@ export default function WeeklyChart({ config }: { config: ChartConfig }) {
       fmt={(v) => rpShort(v)}
       nowIndex={idx >= 0 ? idx : undefined}
       nowLabel="MINGGU INI"
-      height={320}
+      height={360} defaultView="bars" views={["bars", "lines"]}
     />
   );
 }
