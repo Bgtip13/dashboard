@@ -180,8 +180,8 @@ export default function MatrixChart({
           <line x1={L} x2={L + plotW} y1={base} y2={base} style={{ stroke: "var(--grid-line)", strokeWidth: 1 }} />
           <path d={`${dLine} L${pts[pts.length - 1][0]},${base} L${pts[0][0]},${base} Z`} style={{ fill: "var(--ink)", opacity: 0.05 }} />
           <path d={dLine} className="mx-draw" pathLength={1} style={{ fill: "none", stroke: s.color ?? "var(--ink)", strokeWidth: 1.6, strokeLinejoin: "round", animationDelay: `${k * 80}ms` }} />
-          <text x={L - 10} y={base - rowH * 0.32} textAnchor="end" style={{ fill: "var(--ink)", fontSize: 11, fontWeight: 500 }}>{s.name}</text>
-          <text x={L - 10} y={base - rowH * 0.32 + 12} textAnchor="end" className="mono" style={{ fill: "var(--muted)", fontSize: 9, letterSpacing: "0.06em" }}>{fmt(total)}</text>
+          <text x={L - 10} y={base - rowH * 0.32} textAnchor="end" style={{ fill: "var(--ink)", fontSize: 13, fontWeight: 600 }}>{s.name}</text>
+          <text x={L - 10} y={base - rowH * 0.32 + 12} textAnchor="end" className="mono" style={{ fill: "var(--muted)", fontSize: 11, letterSpacing: "0.06em" }}>{fmt(total)}</text>
           {nowIndex !== undefined && nowIndex >= 0 && nowIndex < n && (
             <circle cx={pts[nowIndex][0]} cy={pts[nowIndex][1]} r={3.2} style={{ fill: "var(--lime)", stroke: "var(--ink)", strokeWidth: 1.2 }} />
           )}
@@ -228,7 +228,7 @@ export default function MatrixChart({
         <line x1={L} x2={L + plotW} y1={T + plotH + 3} y2={T + plotH + 3} style={{ stroke: "var(--grid-line)", strokeWidth: 1 }} />
         {categories.map((c, i) => (
           <text key={c + i} x={cx(i)} y={H - 6} textAnchor="middle" className="mono"
-            style={{ fill: hovered === i || nowIndex === i ? "var(--ink)" : "var(--muted)", fontSize: 9.5, letterSpacing: "0.08em" }}>{c}</text>
+            style={{ fill: hovered === i || nowIndex === i ? "var(--ink)" : "var(--muted)", fontSize: 12, letterSpacing: "0.08em" }}>{c}</text>
         ))}
 
         {/* garis NOW */}
@@ -250,13 +250,13 @@ export default function MatrixChart({
         {hovered !== null ? (
           <g style={{ pointerEvents: "none" }}>
             <rect x={tipX} y={2} width={tipW} height={20} rx={10} style={{ fill: "var(--ink)" }} />
-            <text x={tipX + tipW / 2} y={15.5} textAnchor="middle" className="mono" style={{ fill: "var(--app-bg)", fontSize: 10, fontWeight: 600 }}>{tipText}</text>
+            <text x={tipX + tipW / 2} y={15.5} textAnchor="middle" className="mono" style={{ fill: "var(--app-bg)", fontSize: 11, fontWeight: 600 }}>{tipText}</text>
           </g>
         ) : nowOk ? (
           <g style={{ pointerEvents: "none" }}>
             <rect x={nowX} y={2} width={nowW} height={20} rx={10} style={{ fill: "var(--ink)" }} />
             <circle cx={nowX + 11} cy={12} r={3.2} style={{ fill: "var(--lime)" }} />
-            <text x={nowX + 19} y={15.5} className="mono" style={{ fill: "var(--app-bg)", fontSize: 10, fontWeight: 600 }}>{nowText}</text>
+            <text x={nowX + 19} y={15.5} className="mono" style={{ fill: "var(--app-bg)", fontSize: 11, fontWeight: 600 }}>{nowText}</text>
           </g>
         ) : null}
 
