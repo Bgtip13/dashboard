@@ -423,7 +423,7 @@ function ProdukPageContent() {
   }
 
   return (
-    <div className="relative space-y-6 py-4 sm:py-2 produk-workspace">
+    <div className="page-redesign page-produk relative space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Produk"
         title={<>Penjualan Produk{periodeAktif
           ? <span className="ml-3 text-[1.1rem] font-normal text-slate-400">· {formatTanggal(dari || tglMin)} s/d {formatTanggal(sampai || tglMax)}</span>
