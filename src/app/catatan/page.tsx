@@ -162,7 +162,7 @@ export default function CatatanPage() {
   const judulTampil = (c: Catatan) => c.judul.trim() || judulDari(c.isi) || "Catatan tanpa judul";
 
   return (
-    <div className="space-y-6 py-4 sm:py-2 catatan-workspace">
+    <div className="page-redesign page-catatan space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Catatan" title="Catatan"
         sub="Tulis bebas — agenda rapat, ide, atau rencana. Tersimpan otomatis di peramban ini.">
         <button onClick={buat} className="btn-ink"><span className="text-base leading-none">＋</span> Catatan baru</button>
