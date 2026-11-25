@@ -21,6 +21,13 @@ import { MONTH_SHORT } from "@/features/dap/DapChart";
 
 const NAMA = "Bos";
 
+const QUOTES = [
+  "Konsistensi kecil setiap hari membangun hasil besar di akhir bulan.",
+  "Jangan hanya melihat jarak ke target. Lihat juga ritme yang bisa dikendalikan hari ini.",
+  "Performa terbaik lahir dari eksekusi yang terukur, bukan sekadar target yang tinggi.",
+  "Satu kunjungan produktif hari ini bisa mengubah hasil satu minggu.",
+];
+
 const MONTHS = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
   "Juli", "Agustus", "September", "Oktober", "November", "Desember",
@@ -45,9 +52,6 @@ export default function BerandaPage() {
   const { data } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const { data: dap, isLoading: dapLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const [now, setNow] = useState<Date | null>(null);
-  const [quoteIndex, setQuoteIndex] = useState(0);
-  const quotes = ["Konsistensi kecil hari ini membangun hasil besar di akhir bulan.", "Fokus pada aktivitas yang bisa dikendalikan. Hasil akan mengikuti.", "Satu kunjungan berkualitas bisa membuka peluang penjualan berikutnya.", "Jaga ritme. Target besar dicapai lewat langkah yang terukur."];
-  useEffect(() => { const id = window.setInterval(() => setQuoteIndex((v) => (v + 1) % quotes.length), 9000); return () => window.clearInterval(id); }, []);
   useEffect(() => {
     // Jam baru diisi setelah mount (hindari hydration mismatch server/klien)
     const first = setTimeout(() => setNow(new Date()), 0);
@@ -71,6 +75,8 @@ export default function BerandaPage() {
   const bulanIni = now ? now.getMonth() : new Date().getMonth();
   // Sorotan DAP bisa dilihat per bulan pilihan sendiri (null = ikut bulan berjalan)
   const [bulanPilih, setBulanPilih] = useState<number | null>(null);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setQuoteIndex((v) => (v + 1) % QUOTES.length), 12000); return () => window.clearInterval(t); }, []);
   const bulan = bulanPilih ?? bulanIni;
   const dapTren = useMemo(() => ringkasTren(dapRows, bulanIni), [dapRows, bulanIni]);
   const sorotan = useMemo<{ bawah: SorotanToko[]; kurang: SorotanToko[]; ambang: number }>(() => {
@@ -94,7 +100,7 @@ export default function BerandaPage() {
   const tgl = now ? now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "…";
 
   return (
-    <div className="space-y-6 py-4 sm:py-2">
+    <div className="page-redesign page-dashboard space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Beranda" title={<>{greeting(h)}, {NAMA}</>}
         sub={<>{tgl}{dapRows.length > 0 && <> · <b className="font-medium text-slate-200">{dapRows.length}</b> toko DAP · <span className="text-rose-300">{dapTren.turun} turun</span> · <span className="text-emerald-300">{dapTren.naik} naik</span> vs {MONTHS[bulan > 0 ? bulan - 1 : 11]}</>}</>}>
         <span className="chip-soft mono tabular-nums">{jam}:{mnt}<span className="opacity-50">:{dtk}</span> WIB</span>
@@ -156,10 +162,14 @@ export default function BerandaPage() {
         </div>
       </motion.section>
 
-      <section className="motivation-strip panel-card">
-        <div className="motivation-icon">✳</div>
-        <div className="min-w-0 flex-1"><p className="lbl">Insight hari ini</p><p className="mt-1 text-sm leading-relaxed">{pcp >= 100 ? "Target bulanan sudah tercapai. Pertahankan kualitas eksekusi dan dorong pertumbuhan berikutnya." : pcp >= 75 ? `Performa sudah ${pcp.toFixed(1)}%. Jaga ritme dan prioritaskan peluang dengan potensi closing tertinggi.` : `Masih ada ${rp(kejar)} yang perlu dikejar. Pecah target menjadi aktivitas harian yang realistis dan konsisten.`}</p><p className="mt-3 border-t border-black/5 pt-3 text-xs italic text-slate-500 dark:border-white/10">“{quotes[quoteIndex]}”</p></div>
-        <span className="hidden text-xs text-slate-500 sm:block">ROTASI 9 DETIK</span>
+      <section className="dashboard-insight-grid">
+        <article className="dashboard-insight-main">
+          <div className="dashboard-insight-kicker"><span className="dashboard-pulse" /> PERFORMANCE INSIGHT</div>
+          <h2>{pcp >= 100 ? "Target sudah terlampaui. Jaga konsistensi." : pcp >= 80 ? "Sudah mendekati target. Pertahankan ritme." : pcp >= 50 ? "Momentum sudah terbentuk. Tingkatkan intensitas." : "Saatnya membangun momentum penjualan."}</h2>
+          <p>{pcp >= 100 ? `Realisasi saat ini ${pcp.toFixed(1)}%. Fokus menjaga kualitas transaksi dan membuka peluang tambahan.` : `Masih ada ${rp(kejar)} yang perlu dikejar. Dengan ${sisaHe} hari efektif tersisa, kebutuhan ritme saat ini sekitar ${rp(ritme)} per hari.`}</p>
+          <div className="dashboard-insight-bottom"><span>PROGRES TARGET</span><b>{pcp.toFixed(1)}%</b><div><i style={{width:`${Math.min(pcp,100)}%`}} /></div></div>
+        </article>
+        <aside className="dashboard-quote-card"><span className="dashboard-quote-mark">“</span><div className="lbl">DAILY REMINDER</div><blockquote key={quoteIndex}>{QUOTES[quoteIndex]}</blockquote><div className="dashboard-quote-foot"><span>PCP FIELDNOTE</span><span>{String(quoteIndex+1).padStart(2,"0")} / 04</span></div></aside>
       </section>
 
       {/* Sorotan DAP: siapa yang perlu dikejar bulan ini */}
