@@ -120,7 +120,7 @@ export default function PenggunaPage() {
   }
 
   return (
-    <div className="space-y-8 py-8 pengguna-workspace">
+    <div className="page-redesign page-pengguna space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Pengguna" title="Pengguna" sub="Tambah akun, ubah password, atur tab yang boleh dibuka tiap akun, atau hapus akun." />
 
       <form onSubmit={tambah} className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
