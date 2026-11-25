@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { fetchMonthly } from "@/lib/api";
 import { getBadge } from "@/lib/badge";
 import { hariEfektif, rp } from "@/lib/utils";
-import PotionGauge from "@/features/monthly/PotionGauge";
+import MetricProgress from "@/features/monthly/MetricProgress";
 import MonthlyTable from "@/features/monthly/MonthlyTable";
 import PageHeader from "@/components/PageHeader";
 import CountUp from "@/components/CountUp";
@@ -66,55 +66,15 @@ function BulananPageContent() {
         </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <PotionGauge title="Penjualan" pct={pcp} gradient={["#6f727d", "#15161a"]}
-          formatter={(v) => `${v.toFixed(1)}%`} badge={badge}
-          footer={
-            <div className="space-y-1.5 text-sm">
-              <div className="flex justify-between"><span className="text-slate-400">Target</span><CountUp value={tgt} format={rp} className="font-medium text-slate-200" /></div>
-              <div className="flex justify-between"><span className="text-slate-400">Aktual</span><CountUp value={act} format={rp} className="font-medium text-slate-200" /></div>
-              <div className="flex justify-between"><span className="text-slate-400">Kejar 100%</span><CountUp value={kejar} format={rp} className="font-semibold text-amber-300" /></div>
-            </div>
-          } />
-
-        <PotionGauge title="Trip" pct={trip.total ? (trip.jalan / trip.total) * 100 : 0}
-          gradient={["#a2a5af", "#3a3d46"]}
-          infinite={isTab}
-          formatter={() => (isTab ? "∞" : `${trip.jalan}/${trip.total}`)}
-          footer={
-            isTab ? (
-              <div className="text-sm text-slate-400">
-                <span className="font-semibold text-emerald-300">Toko Cabang &amp; Pelanggan Self-pickup</span>
-              </div>
-            ) : (
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between"><span className="text-slate-400">Trip sudah jalan</span><span className="font-semibold text-emerald-300">{trip.jalan}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Sisa trip</span><span className="font-semibold text-amber-300">{Math.max(trip.total - trip.jalan, 0)}</span></div>
-              </div>
-            )
-          } />
-
-        <PotionGauge title="Kontribusi" pct={kon.potensi ? (kon.aktif / kon.potensi) * 100 : 0}
-          gradient={["#8b8f9a", "#2a2c33"]}
-          formatter={(v) => `${v.toFixed(1)}%`}
-          footer={
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-              <span className="text-slate-400">Potensi Toko</span><CountUp value={kon.potensi} className="text-right font-medium text-slate-200" />
-              <span className="text-slate-400">Toko Aktif</span><CountUp value={kon.aktif} className="text-right font-medium text-emerald-300" />
-              <span className="text-slate-400">NOO</span><CountUp value={kon.noo} className="text-right font-medium text-slate-200" />
-              <span className="text-slate-400">Reaktif</span><CountUp value={kon.reaktif} className="text-right font-medium text-sky-300" />
-            </div>
-          } />
-
-        <PotionGauge title="Hari Efektif" pct={he.total ? (he.berjalan / he.total) * 100 : 0}
-          gradient={["#b4b7c0", "#4a4d57"]}
-          formatter={() => `${he.berjalan}/${he.total}`}
-          footer={
-            <div className="text-sm text-slate-400">
-              Hari efektif berjalan <span className="font-semibold text-slate-200">{he.berjalan}</span> dari {he.total} (auto, tanpa Minggu)
-            </div>
-          } />
-      </div>
+      <section className="monthly-overview panel-card">
+        <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="lbl">Ringkasan performa · {area}</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Empat indikator utama</h2></div><span className="chip-lime">{badge.emoji} {badge.label}</span></div>
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MetricProgress title="Penjualan" eyebrow="01 / Revenue" pct={pcp} value={`${pcp.toFixed(1)}%`} detail={`${rp(act)} dari ${rp(tgt)}`} footer={<div className="space-y-1.5 text-sm"><div className="flex justify-between"><span className="text-slate-400">Target</span><CountUp value={tgt} format={rp} /></div><div className="flex justify-between"><span className="text-slate-400">Aktual</span><CountUp value={act} format={rp} /></div><div className="flex justify-between"><span className="text-slate-400">Kejar 100%</span><CountUp value={kejar} format={rp} className="font-semibold text-amber-300" /></div></div>} />
+          <MetricProgress title="Trip" eyebrow="02 / Distribusi" pct={trip.total ? (trip.jalan / trip.total) * 100 : 100} value={isTab ? "∞" : `${trip.jalan}/${trip.total}`} detail={isTab ? "Cabang & self-pickup" : "Trip sudah berjalan"} tone="slate" footer={isTab ? <p className="text-sm text-slate-400">Toko Cabang &amp; Pelanggan Self-pickup</p> : <div className="space-y-1.5 text-sm"><div className="flex justify-between"><span className="text-slate-400">Trip sudah jalan</span><b>{trip.jalan}</b></div><div className="flex justify-between"><span className="text-slate-400">Sisa trip</span><b>{Math.max(trip.total - trip.jalan, 0)}</b></div></div>} />
+          <MetricProgress title="Kontribusi" eyebrow="03 / Aktivasi" pct={kon.potensi ? (kon.aktif / kon.potensi) * 100 : 0} value={`${(kon.potensi ? (kon.aktif / kon.potensi) * 100 : 0).toFixed(1)}%`} detail={`${kon.aktif} toko aktif dari ${kon.potensi} potensi`} tone="blue" footer={<div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm"><span className="text-slate-400">Potensi Toko</span><CountUp value={kon.potensi} className="text-right" /><span className="text-slate-400">Toko Aktif</span><CountUp value={kon.aktif} className="text-right text-emerald-300" /><span className="text-slate-400">NOO</span><CountUp value={kon.noo} className="text-right" /><span className="text-slate-400">Reaktif</span><CountUp value={kon.reaktif} className="text-right text-sky-300" /></div>} />
+          <MetricProgress title="Hari Efektif" eyebrow="04 / Momentum" pct={he.total ? (he.berjalan / he.total) * 100 : 0} value={`${he.berjalan}/${he.total}`} detail="Hari efektif yang sudah berjalan" tone="slate" footer={<p className="text-sm text-slate-400">Hari efektif berjalan <b className="text-slate-200">{he.berjalan}</b> dari {he.total} (auto, tanpa Minggu)</p>} />
+        </div>
+      </section>
 
       <MonthlyTable rows={rows} />
     </div>

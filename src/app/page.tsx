@@ -45,6 +45,9 @@ export default function BerandaPage() {
   const { data } = useQuery({ queryKey: ["monthly"], queryFn: fetchMonthly });
   const { data: dap, isLoading: dapLoading } = useQuery({ queryKey: ["dap"], queryFn: fetchDap });
   const [now, setNow] = useState<Date | null>(null);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+  const quotes = ["Konsistensi kecil hari ini membangun hasil besar di akhir bulan.", "Fokus pada aktivitas yang bisa dikendalikan. Hasil akan mengikuti.", "Satu kunjungan berkualitas bisa membuka peluang penjualan berikutnya.", "Jaga ritme. Target besar dicapai lewat langkah yang terukur."];
+  useEffect(() => { const id = window.setInterval(() => setQuoteIndex((v) => (v + 1) % quotes.length), 9000); return () => window.clearInterval(id); }, []);
   useEffect(() => {
     // Jam baru diisi setelah mount (hindari hydration mismatch server/klien)
     const first = setTimeout(() => setNow(new Date()), 0);
@@ -152,6 +155,12 @@ export default function BerandaPage() {
           {me?.user.tabs.includes("bulanan") && <Link href="/bulanan" className="btn-ghost">Detail <span aria-hidden>→</span></Link>}
         </div>
       </motion.section>
+
+      <section className="motivation-strip panel-card">
+        <div className="motivation-icon">✳</div>
+        <div className="min-w-0 flex-1"><p className="lbl">Insight hari ini</p><p className="mt-1 text-sm leading-relaxed">{pcp >= 100 ? "Target bulanan sudah tercapai. Pertahankan kualitas eksekusi dan dorong pertumbuhan berikutnya." : pcp >= 75 ? `Performa sudah ${pcp.toFixed(1)}%. Jaga ritme dan prioritaskan peluang dengan potensi closing tertinggi.` : `Masih ada ${rp(kejar)} yang perlu dikejar. Pecah target menjadi aktivitas harian yang realistis dan konsisten.`}</p><p className="mt-3 border-t border-black/5 pt-3 text-xs italic text-slate-500 dark:border-white/10">“{quotes[quoteIndex]}”</p></div>
+        <span className="hidden text-xs text-slate-500 sm:block">ROTASI 9 DETIK</span>
+      </section>
 
       {/* Sorotan DAP: siapa yang perlu dikejar bulan ini */}
       <div>

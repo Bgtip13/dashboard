@@ -214,7 +214,7 @@ function DapPageContent() {
   ];
 
   return (
-    <div className="space-y-8 py-8">
+    <div className="space-y-8 py-8 dap-workspace">
       <PageHeader crumb="DAP" title="Rincian Detail Toko"
         sub={isLoading ? "Memuat…" : `${rows.length === all.length ? all.length : `${rows.length} dari ${all.length}`} toko · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`} />
 

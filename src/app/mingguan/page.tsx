@@ -6,7 +6,8 @@ import { motion } from "framer-motion";
 import { fetchWeekly, fetchMonthly } from "@/lib/api";
 import { badgeTone, getBadge } from "@/lib/badge";
 import { useTheme } from "@/app/providers";
-import { rp } from "@/lib/utils";
+import { rp, rpShort } from "@/lib/utils";
+import MatrixChart from "@/components/MatrixChart";
 import WeeklyChart, { type ChartConfig } from "@/features/weekly/WeeklyChart";
 import WeeklyTable from "@/features/weekly/WeeklyTable";
 import PageHeader from "@/components/PageHeader";
@@ -74,6 +75,17 @@ function MingguanPageContent() {
     }
     return { weeks: weekIdx.map((w) => WEEKS[w]), areas, values };
   }, [rows, areas, weekIdx]);
+  const cumulative = useMemo(() => {
+    const values: Record<string, number[]> = {};
+    for (const a of areas) {
+      let total = 0;
+      values[a] = WEEKS.map((_, w) => {
+        total += rows.filter((r) => r.area === a).reduce((sum, r) => sum + (r.act[w] ?? 0), 0);
+        return total;
+      });
+    }
+    return values;
+  }, [rows, areas]);
 
   /** Target Periode:
    *  week = ALL   -> target bulanan (sama dengan halaman Bulanan utk area terpilih)
@@ -133,9 +145,9 @@ function MingguanPageContent() {
         </motion.div>
       </div>
 
-      <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-        <p className="lbl mb-1">Aktual per minggu · per area</p>
-        <WeeklyChart config={config} />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <section className="chart-panel panel-card"><div className="mb-2 flex items-center justify-between gap-3"><div><p className="lbl">Kecepatan penjualan</p><h2 className="mt-1 text-lg font-semibold">Aktual per minggu</h2></div><span className="chart-index">01</span></div><WeeklyChart config={config} /></section>
+        <section className="chart-panel panel-card"><div className="mb-2 flex items-center justify-between gap-3"><div><p className="lbl">Akumulasi performa</p><h2 className="mt-1 text-lg font-semibold">Penjualan kumulatif</h2></div><span className="chart-index">02</span></div><MatrixChart categories={[...WEEKS]} series={areas.map((a) => ({ name: a, values: cumulative[a] ?? [] }))} fmt={(v) => rpShort(v)} nowIndex={Math.floor((new Date().getDate() - 1) / 7)} nowLabel="MINGGU INI" height={320} /></section>
       </div>
 
       <WeeklyTable rows={rows} weekIdx={weekIdx} />
