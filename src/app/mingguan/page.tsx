@@ -6,8 +6,7 @@ import { motion } from "framer-motion";
 import { fetchWeekly, fetchMonthly } from "@/lib/api";
 import { badgeTone, getBadge } from "@/lib/badge";
 import { useTheme } from "@/app/providers";
-import { rp, rpShort } from "@/lib/utils";
-import MatrixChart from "@/components/MatrixChart";
+import { rp } from "@/lib/utils";
 import WeeklyChart, { type ChartConfig } from "@/features/weekly/WeeklyChart";
 import WeeklyTable from "@/features/weekly/WeeklyTable";
 import PageHeader from "@/components/PageHeader";
@@ -75,17 +74,6 @@ function MingguanPageContent() {
     }
     return { weeks: weekIdx.map((w) => WEEKS[w]), areas, values };
   }, [rows, areas, weekIdx]);
-  const cumulative = useMemo(() => {
-    const values: Record<string, number[]> = {};
-    for (const a of areas) {
-      let total = 0;
-      values[a] = WEEKS.map((_, w) => {
-        total += rows.filter((r) => r.area === a).reduce((sum, r) => sum + (r.act[w] ?? 0), 0);
-        return total;
-      });
-    }
-    return values;
-  }, [rows, areas]);
 
   /** Target Periode:
    *  week = ALL   -> target bulanan (sama dengan halaman Bulanan utk area terpilih)
@@ -103,32 +91,40 @@ function MingguanPageContent() {
     return rows.reduce((s, r) => s + (r.targetPerMinggu ?? 0), 0) * weekIdx.length;
   }, [week, monthly, area, rows, weekIdx]);
   const act = rows.reduce((s, r) => s + weekIdx.reduce((t, w) => t + (r.act?.[w] ?? 0), 0), 0);
+  const cumulativeConfig: ChartConfig = useMemo(() => {
+    const values: Record<string, number[]> = {};
+    for (const a of areas) {
+      let total = 0;
+      values[a] = weekIdx.map((w) => { total += rows.filter((r) => r.area === a).reduce((sum, r) => sum + (r.act[w] ?? 0), 0); return total; });
+    }
+    return { weeks: weekIdx.map((w) => WEEKS[w]), areas, values };
+  }, [rows, areas, weekIdx]);
   const pcp = tgt ? (act / tgt) * 100 : 0;
   const badge = getBadge(pcp);
 
   return (
-    <div className="space-y-8 py-8">
+    <div className="page-redesign page-weekly space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Mingguan" title="Pencapaian Mingguan"
         sub={isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}>
         <Pills items={AREAS} value={area} onChange={setArea} id="w-area" />
         <Pills items={["ALL", ...WEEKS] as const} value={week} onChange={setWeek} id="w-week" />
       </PageHeader>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="weekly-kpi-grid">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+          className="weekly-kpi-card">
           <p className="lbl">
             {week === "ALL" ? "Target Bulanan" : "Target Mingguan"}
           </p>
           <CountUp value={tgt} format={rp} className="num-xl mt-2 block text-[2.2rem]" />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-          className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+          className="weekly-kpi-card">
           <p className="lbl">Aktual</p>
           <CountUp value={act} format={rp} className="num-xl mt-2 block text-[2.2rem] text-emerald-300" />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+          className="weekly-kpi-card">
           <p className="lbl">Pencapaian</p>
           <div className="mt-1 flex items-center gap-3">
             <CountUp value={pcp} format={(v) => `${v.toFixed(1)}%`} className="num-xl text-[2.2rem]" />
@@ -145,12 +141,11 @@ function MingguanPageContent() {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <section className="chart-panel panel-card"><div className="mb-2 flex items-center justify-between gap-3"><div><p className="lbl">Kecepatan penjualan</p><h2 className="mt-1 text-lg font-semibold">Aktual per minggu</h2></div><span className="chart-index">01</span></div><WeeklyChart config={config} /></section>
-        <section className="chart-panel panel-card"><div className="mb-2 flex items-center justify-between gap-3"><div><p className="lbl">Akumulasi performa</p><h2 className="mt-1 text-lg font-semibold">Penjualan kumulatif</h2></div><span className="chart-index">02</span></div><MatrixChart categories={[...WEEKS]} series={areas.map((a) => ({ name: a, values: cumulative[a] ?? [] }))} fmt={(v) => rpShort(v)} nowIndex={Math.floor((new Date().getDate() - 1) / 7)} nowLabel="MINGGU INI" height={320} /></section>
-      </div>
-
-      <WeeklyTable rows={rows} weekIdx={weekIdx} />
+      <section className="weekly-chart-grid">
+        <article className="weekly-chart-panel weekly-chart-primary"><div className="chart-panel-heading"><div><span className="lbl">SALES VELOCITY</span><h2>Penjualan per minggu</h2><p>Kecepatan penjualan setiap area pada minggu terpilih.</p></div><span className="chart-panel-tag">AKTUAL</span></div><WeeklyChart config={config} /></article>
+        <article className="weekly-chart-panel"><div className="chart-panel-heading"><div><span className="lbl">CUMULATIVE PERFORMANCE</span><h2>Akumulasi penjualan</h2><p>Perjalanan total penjualan dari awal periode.</p></div><span className="chart-panel-tag chart-panel-tag-lime">KUMULATIF</span></div><WeeklyChart config={cumulativeConfig} /></article>
+      </section>
+      <section className="weekly-table-section"><div className="section-heading"><div><div className="lbl">WEEKLY BREAKDOWN</div><h2>Rincian per area</h2><p>Perbandingan target dan aktual berdasarkan minggu.</p></div><span className="section-index">DATA DETAIL</span></div><WeeklyTable rows={rows} weekIdx={weekIdx} /></section>
     </div>
   );
 }
