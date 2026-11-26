@@ -48,6 +48,9 @@ function BulananPageContent() {
   const badge = getBadge(pcp);
   const he = hariEfektif();
   const isTab = area === "TAB";
+  // Ritme mengejar target mengikuti sisa kuota trip, bukan sisa hari kalender.
+  const tripSisa = Math.max(trip.total - trip.jalan, 0);
+  const ritmePerTrip = tripSisa > 0 ? kejar / tripSisa : 0;
 
   const areaRows = useMemo(() => {
     const source = (data?.rows ?? []).filter((r) => r.area !== "GLOBAL");
@@ -92,7 +95,7 @@ function BulananPageContent() {
         </div>
         <div className="monthly-overview-side">
           <div className="lbl">ARAH PENCAPAIAN</div>
-          <div className="monthly-callout"><span className="monthly-callout-icon">↗</span><div><b>{he.total-he.berjalan > 0 ? `${rp(kejar / Math.max(he.total-he.berjalan,1))} / hari` : "Periode selesai"}</b><p>Ritme penjualan harian yang dibutuhkan untuk mengejar target.</p></div></div>
+          <div className="monthly-callout"><span className="monthly-callout-icon">↗</span><div><b>{isTab ? "Tidak menggunakan kuota trip" : kejar <= 0 ? "Target penjualan tercapai" : tripSisa > 0 ? `${rp(ritmePerTrip)} / trip` : "Kuota trip habis"}</b><p>{isTab ? "Area TAB menggunakan mekanisme cabang & self-pickup." : "Ritme penjualan yang dibutuhkan dihitung dari sisa target dibagi sisa kuota trip."}</p></div></div>
           <div className="monthly-mini-grid"><div><span>Trip berjalan</span><b>{trip.jalan}<small> / {trip.total}</small></b></div><div><span>Toko aktif</span><b>{kon.aktif}<small> / {kon.potensi}</small></b></div></div>
         </div>
       </section>
