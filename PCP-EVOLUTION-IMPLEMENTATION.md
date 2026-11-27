@@ -43,3 +43,14 @@ Semua perubahan di halaman adalah class/layout; tidak ada handler data atau rumu
 - `npm ci --ignore-scripts --no-audit --no-fund` mengalami timeout saat mengunduh dependensi. Karena itu `next build` belum dapat dijalankan dan belum boleh dianggap lulus.
 - Jalankan `npm ci` lalu `npm run build` di komputer lokal sebelum deploy.
 - Arsip ini tidak menyertakan `.env.local`, token, atau kredensial.
+
+## Revisi lebar halaman seragam (semua menu)
+
+Masalah: Beranda, Bulanan, dan Mingguan masih memakai `.page-redesign` dengan `max-width:1680px; margin-inline:auto` (tampil center, tidak memanfaatkan ruang), sedangkan DAP, Produk, Catatan, dan Pengguna sudah full-width. Selain itu padding kiri untuk sidebar (`sm:pl-[var(--side-w)]`) berpotensi tertimpa `lg:px-9` / `2xl:px-12` di `ShellMain`.
+
+Perbaikan:
+1. `src/components/ShellMain.tsx` — memakai class `.shell-main` / `.shell-main--app` / `.shell-main--login`.
+2. `src/app/globals.css` — aturan `.shell-main` (padding deterministik, konten mulai tepat di sebelah sidebar via `--side-w` dan memanjang ke tepi kanan); `.page-redesign` tidak lagi dibatasi `max-width`/auto-center; grid area, KPI, dan insight memakai `--workspace-gap`; grid area memakai `auto-fit` sehingga jumlah kolom mengikuti ruang.
+3. `src/app/page.tsx`, `src/app/bulanan/page.tsx`, `src/app/mingguan/page.tsx` — ditambah `module-workspace` agar sama dengan modul lain.
+
+Tidak ada perubahan logika bisnis, API, auth, atau data. Belum diuji di browser/`next build` pada lingkungan ini (dependensi belum dipasang); jalankan `npm ci && npm run build` secara lokal.
