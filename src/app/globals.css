@@ -358,7 +358,8 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 .page-dap .rounded-\[1\.6rem\], .page-produk .rounded-\[1\.6rem\] { border-radius:20px; }
 .page-dap .rounded-\[1\.6rem\].border, .page-produk .rounded-\[1\.6rem\].border { box-shadow:var(--card-shadow); }
 .page-dap .lbl, .page-produk .lbl { font-size:.7rem; }
-.page-dap table, .page-produk table { min-width:760px; }
+.page-dap table { min-width:100%; }
+.page-produk table { min-width:760px; }
 .page-dap .text-\[0\.75rem\], .page-produk .text-\[0\.75rem\] { font-size:.78rem; }
 .page-dap .text-xs, .page-produk .text-xs { font-size:.78rem; line-height:1.45; }
 .page-dap .text-sm, .page-produk .text-sm { line-height:1.5; }
@@ -536,7 +537,6 @@ main { width:100%; min-width:0; }
 .page-dap .dap-insight-grid { gap:var(--workspace-gap); }
 .page-dap .dap-selected-panel { border-color:var(--lime-deep); }
 .page-dap .tbl-scroll, .page-dap .overflow-x-auto { max-width:100%; }
-.page-dap table { font-size:clamp(.82rem,.78vw,.98rem); }
 
 /* Produk — filter dock, analytical cards and readable data table */
 .page-produk .produk-filter-workspace {
@@ -561,7 +561,12 @@ main { width:100%; min-width:0; }
 }
 .page-produk .produk-data-table { border-color:var(--card-border); border-radius:22px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .page-produk .produk-data-table > div { max-width:100%; overflow-x:auto; }
-.page-produk .produk-data-table table { min-width:980px; font-size:.9rem; }
+.page-produk .produk-data-table table { min-width:980px; font-size:clamp(.82rem,.8vw,.96rem); }
+.page-produk .produk-data-table th, .page-produk .produk-data-table td { padding-inline:clamp(.5rem,.75vw,1rem); vertical-align:middle; }
+.page-produk .produk-data-table thead th { letter-spacing:.07em; white-space:nowrap; }
+.page-produk .produk-data-table td.produk-col-barang { min-width:11rem; white-space:normal; overflow-wrap:anywhere; line-height:1.35; }
+.page-produk .produk-data-table td:nth-child(n+8) { white-space:nowrap; }
+@media (min-width:1100px) { .page-produk .produk-data-table table { min-width:0; } }
 .page-produk .produk-data-table thead { position:sticky; top:0; z-index:1; }
 .page-produk .produk-data-table thead th { background:var(--card-inner); }
 .page-produk .produk-data-table tbody tr:hover { background:var(--card-inner); }
@@ -653,3 +658,14 @@ main { width:100%; min-width:0; }
   .shell-main { padding-inline:3rem; }
   .shell-main--app { padding-left:var(--side-w,7rem); }
 }
+
+/* Pill status toko (DAP): kontras terjaga di mode terang & gelap */
+.dap-status { display:block; padding:.18rem .75rem; border:1px solid transparent; border-radius:999px; text-align:center; font-size:.78rem; font-weight:650; letter-spacing:.03em; line-height:1.35; }
+.dap-status--lancar { background:rgba(196,226,41,.38); border-color:rgba(120,150,0,.35); color:#2f4200; }
+.dap-status--pasif  { background:rgba(220,38,38,.12);  border-color:rgba(220,38,38,.30);  color:#b91c1c; }
+.dap-status--baru   { background:rgba(100,116,139,.15); border-color:rgba(100,116,139,.30); color:#3a3d46; }
+.dap-status--netral { background:rgba(100,116,139,.10); border-color:rgba(100,116,139,.22); color:#4b5060; }
+html.dark .dap-status--lancar { background:rgba(196,226,41,.18); border-color:rgba(196,226,41,.40); color:#d9f05f; }
+html.dark .dap-status--pasif  { background:rgba(248,113,113,.16); border-color:rgba(248,113,113,.38); color:#fca5a5; }
+html.dark .dap-status--baru   { background:rgba(169,172,182,.16); border-color:rgba(169,172,182,.34); color:#d6d8de; }
+html.dark .dap-status--netral { background:rgba(148,163,184,.12); border-color:rgba(148,163,184,.28); color:#cbd5e1; }

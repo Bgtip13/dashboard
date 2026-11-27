@@ -673,7 +673,7 @@ function ProdukPageContent() {
       {/* Tabel */}
       <div className="produk-data-table overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-base">
+          <table className="produk-table w-full text-base">
             <thead>
               <tr className="border-b border-white/10 bg-white/5 text-left lbl">
                 <th className="px-5 py-3.5 font-semibold">Area</th>
@@ -695,18 +695,18 @@ function ProdukPageContent() {
               {paged.map((r, i) => (
                 <tr key={`${r.tanggal}-${r.area}-${r.pelanggan}-${r.barang}-${i}`}
                   className="border-b border-white/5 transition-colors hover:bg-white/[0.06]">
-                  <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
-                  <td className="whitespace-nowrap px-4 py-3">{r.kabupaten}</td>
-                  <td className="whitespace-nowrap px-4 py-3">{r.kecamatan}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-300">{r.kategori}</td>
+                  <td className="whitespace-nowrap px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-sm font-medium ${areaStyle(r.area)}`}>{r.area}</span></td>
+                  <td className="px-4 py-3">{r.kabupaten}</td>
+                  <td className="px-4 py-3">{r.kecamatan}</td>
+                  <td className="px-4 py-3 text-slate-300">{r.kategori}</td>
                   <td className="px-4 py-3">
                     <span className="flex items-center gap-2">
                       <BrandLogo brand={r.brand} size={24} />
-                      <span className="whitespace-nowrap">{r.brand}</span>
+                      <span>{r.brand}</span>
                     </span>
                   </td>
-                  <td className="max-w-[clamp(16rem,34vw,60rem)] truncate px-4 py-3 font-medium" title={r.barang}>{r.barang}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-slate-300">{r.pelanggan}</td>
+                  <td className="produk-col-barang px-4 py-3 font-medium" title={r.barang}>{r.barang}</td>
+                  <td className="px-4 py-3 text-slate-300">{r.pelanggan}</td>
                   <td className="whitespace-nowrap px-4 py-3 text-slate-300 tabular-nums">{r.tanggal ? formatTanggal(r.tanggal) : "–"}</td>
                   <td className="px-4 py-3 text-right tabular-nums">{r.qty.toLocaleString("id-ID")}</td>
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums ${r.penjualan < 0 ? "text-rose-300" : ""}`}>{rp(r.penjualan)}</td>
