@@ -78,7 +78,7 @@ function BulananPageContent() {
   ];
   const areaStats = areaRows.map((r) => ({ area: r.area, actual: r.aktual, target: r.target, pct: r.target ? r.aktual / r.target * 100 : 0 }));
   return (
-    <div className="page-redesign page-monthly space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-monthly module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Laporan / Bulanan" title="Pencapaian Bulanan"
         sub={isLoading ? "Memuat data pencapaian…" : `Performa empat indikator utama · Diperbarui ${data?.updatedAt ? new Date(data.updatedAt).toLocaleString("id-ID") : "—"}`}>
         <div className="seg page-segmented">{AREAS.map((a) => <button key={a} onClick={() => setArea(a)} className={`relative rounded-full px-4 py-2.5 text-sm font-semibold ${area===a ? "is-active" : ""}`}>

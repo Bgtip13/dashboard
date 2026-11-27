@@ -103,7 +103,7 @@ function MingguanPageContent() {
   const badge = getBadge(pcp);
 
   return (
-    <div className="page-redesign page-weekly space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-weekly module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Mingguan" title="Pencapaian Mingguan"
         sub={isLoading ? "Memuat…" : `Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`}>
         <Pills items={AREAS} value={area} onChange={setArea} id="w-area" />

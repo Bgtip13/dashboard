@@ -270,7 +270,7 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
    PCP EVOLUTION — module layouts, hierarchy, responsive analytics system
    Kept on top of the original Fieldnote tokens; no business logic changes.
    ===================================================================== */
-.page-redesign { width:100%; max-width:1680px; margin-inline:auto; color:var(--app-fg); }
+.page-redesign { width:100%; max-width:none; margin-inline:0; color:var(--app-fg); }
 .page-redesign > * { min-width:0; }
 .page-redesign .lbl { font-size:.72rem; letter-spacing:.14em; font-weight:650; }
 .page-redesign h1 { letter-spacing:-.045em; line-height:1.05; }
@@ -315,7 +315,7 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 .monthly-mini-grid > div { display:grid; gap:4px; padding:14px; border:1px solid var(--card-border); border-radius:15px; background:var(--card-bg); }
 .monthly-mini-grid b { font-size:1.35rem; font-weight:650; font-variant-numeric:tabular-nums; }
 .monthly-mini-grid small { color:var(--muted); font-size:.8rem; font-weight:400; }
-.metric-progress-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.metric-progress-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--workspace-gap,14px); }
 .metric-progress-card { position:relative; min-width:0; overflow:hidden; padding:21px; border:1px solid var(--card-border); border-radius:22px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .metric-progress-card:after { content:""; position:absolute; width:130px; height:130px; right:-58px; top:-66px; border-radius:50%; background:var(--metric-accent); opacity:.12; filter:blur(1px); }
 .metric-lime { --metric-accent:#c4e229; }.metric-blue { --metric-accent:#5b9ee8; }.metric-violet { --metric-accent:#9b83e8; }.metric-amber { --metric-accent:#e5ad4e; }
@@ -330,7 +330,7 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 .metric-foot { display:flex; justify-content:space-between; gap:8px; margin-top:12px; color:var(--muted); font-size:.73rem; }
 .metric-foot span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .metric-foot b { flex:none; color:var(--app-fg); font:600 .72rem var(--font-mono); }
-.area-performance-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+.area-performance-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr)); gap:12px; }
 .area-performance-card { padding:18px; border:1px solid var(--card-border); border-radius:18px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .area-performance-head, .area-performance-foot { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .area-performance-head b { font-size:.9rem; }.area-performance-head strong { font:650 1.05rem var(--font-mono); }
@@ -338,11 +338,11 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 .area-performance-foot { color:var(--muted); font-size:.72rem; }
 
 /* Weekly report */
-.weekly-kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.weekly-kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--workspace-gap,14px); }
 .weekly-kpi-card { min-width:0; padding:23px 25px; border:1px solid var(--card-border); border-radius:22px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .weekly-kpi-card .lbl { font-size:.72rem; }
 .weekly-kpi-card .num-xl { margin-top:14px; font-size:clamp(1.9rem,3vw,3rem); letter-spacing:-.065em; overflow-wrap:anywhere; }
-.weekly-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.weekly-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--workspace-gap,14px); }
 .weekly-chart-panel { min-width:0; padding:22px 22px 14px; border:1px solid var(--card-border); border-radius:23px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .chart-panel-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:14px; }
 .chart-panel-heading h2 { margin-top:5px; font-size:1.2rem; font-weight:650; letter-spacing:-.035em; }
@@ -401,7 +401,6 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 
 @media (max-width:1100px) {
  .metric-progress-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
- .area-performance-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
  .weekly-chart-grid { grid-template-columns:1fr; }
 }
 @media (max-width:760px) {
@@ -437,13 +436,14 @@ html.dark [class~="bg-indigo-500/25"][class~="text-slate-100"] { color: #15161a 
 }
 
 /* Additional page-specific composition */
-.dashboard-insight-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(260px,.75fr); gap:14px; }
+.dashboard-insight-grid { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(260px,.75fr); gap:var(--workspace-gap,14px); }
+@media (max-width:1100px) { .dashboard-insight-grid { grid-template-columns:minmax(0,1fr); } }
 .dashboard-insight-main, .dashboard-quote-card { min-width:0; padding:clamp(20px,3vw,30px); border:1px solid var(--card-border); border-radius:22px; background:var(--card-bg); box-shadow:var(--card-shadow); }
 .dashboard-insight-main { position:relative; overflow:hidden; background:linear-gradient(115deg,var(--card-bg) 0%,var(--card-bg) 68%,color-mix(in srgb,var(--lime) 14%,var(--card-bg)) 100%); }
 .dashboard-insight-kicker { display:flex; align-items:center; gap:9px; color:var(--muted); font:650 .68rem var(--font-mono); letter-spacing:.13em; }
 .dashboard-pulse { width:8px; height:8px; border-radius:50%; background:var(--lime-deep); box-shadow:0 0 0 5px color-mix(in srgb,var(--lime) 20%,transparent); }
-.dashboard-insight-main h2 { max-width:720px; margin-top:18px; font-size:clamp(1.45rem,3vw,2.35rem); line-height:1.1; font-weight:650; letter-spacing:-.05em; }
-.dashboard-insight-main > p { max-width:760px; margin-top:10px; color:var(--muted); font-size:.92rem; }
+.dashboard-insight-main h2 { max-width:min(100%,56rem); margin-top:18px; font-size:clamp(1.45rem,3vw,2.35rem); line-height:1.1; font-weight:650; letter-spacing:-.05em; }
+.dashboard-insight-main > p { max-width:min(100%,60rem); margin-top:10px; color:var(--muted); font-size:.92rem; }
 .dashboard-insight-bottom { display:grid; grid-template-columns:auto auto; align-items:center; gap:8px; margin-top:25px; color:var(--muted); font:600 .68rem var(--font-mono); letter-spacing:.1em; }
 .dashboard-insight-bottom b { color:var(--app-fg); font-size:.85rem; }
 .dashboard-insight-bottom > div { grid-column:1/-1; height:7px; overflow:hidden; border-radius:99px; background:var(--card-inner); }
@@ -629,4 +629,27 @@ main { width:100%; min-width:0; }
 }
 @media (max-width:430px) {
   .page-produk .produk-filter-workspace.grid.grid-cols-1.gap-3 { grid-template-columns:minmax(0,1fr); }
+}
+
+/* =====================================================================
+   SHELL UTAMA — satu aturan lebar untuk SEMUA menu.
+   Konten selalu mulai tepat di sebelah sidebar (--side-w) dan memanjang
+   sampai tepi kanan layar; tidak ada max-width / auto-center per halaman.
+   Ditulis di CSS (bukan utilitas bertingkat) agar padding kiri sidebar
+   tidak tertimpa padding responsif pada breakpoint lebih besar.
+   ===================================================================== */
+.shell-main { width:100%; min-width:0; margin:0; padding-inline:1rem; }
+.shell-main--app { padding-top:calc(4.75rem + env(safe-area-inset-top)); padding-bottom:calc(6.5rem + env(safe-area-inset-bottom)); }
+.shell-main--login { padding-bottom:4rem; }
+@media (min-width:640px) {
+  .shell-main { padding-inline:1.75rem; }
+  .shell-main--app { padding-top:1.5rem; padding-bottom:4rem; padding-left:var(--side-w,7rem); }
+}
+@media (min-width:1024px) {
+  .shell-main { padding-inline:2.25rem; }
+  .shell-main--app { padding-left:var(--side-w,7rem); }
+}
+@media (min-width:1536px) {
+  .shell-main { padding-inline:3rem; }
+  .shell-main--app { padding-left:var(--side-w,7rem); }
 }

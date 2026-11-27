@@ -100,7 +100,7 @@ export default function BerandaPage() {
   const tgl = now ? now.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "…";
 
   return (
-    <div className="page-redesign page-dashboard space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-dashboard module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Beranda" title={<>{greeting(h)}, {NAMA}</>}
         sub={<>{tgl}{dapRows.length > 0 && <> · <b className="font-medium text-slate-200">{dapRows.length}</b> toko DAP · <span className="text-rose-300">{dapTren.turun} turun</span> · <span className="text-emerald-300">{dapTren.naik} naik</span> vs {MONTHS[bulan > 0 ? bulan - 1 : 11]}</>}</>}>
         <span className="chip-soft mono tabular-nums">{jam}:{mnt}<span className="opacity-50">:{dtk}</span> WIB</span>
