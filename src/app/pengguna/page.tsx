@@ -120,10 +120,10 @@ export default function PenggunaPage() {
   }
 
   return (
-    <div className="page-redesign page-pengguna space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-pengguna module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Pengguna" title="Pengguna" sub="Tambah akun, ubah password, atur tab yang boleh dibuka tiap akun, atau hapus akun." />
 
-      <form onSubmit={tambah} className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+      <form onSubmit={tambah} className="pengguna-create rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
         <p className="lbl">Tambah user</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <input value={id} onChange={(e) => setId(e.target.value)} placeholder="ID (mis. andi)"
@@ -146,7 +146,7 @@ export default function PenggunaPage() {
         )}
       </form>
 
-      <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
+      <div className="pengguna-table overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
         <div className="tbl-scroll">
           <table className="w-full text-base">
             <thead>

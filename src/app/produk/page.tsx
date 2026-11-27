@@ -423,7 +423,7 @@ function ProdukPageContent() {
   }
 
   return (
-    <div className="page-redesign page-produk relative space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-produk module-workspace relative space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Produk"
         title={<>Penjualan Produk{periodeAktif
           ? <span className="ml-3 text-[1.1rem] font-normal text-slate-400">· {formatTanggal(dari || tglMin)} s/d {formatTanggal(sampai || tglMax)}</span>
@@ -447,7 +447,7 @@ function ProdukPageContent() {
       )}
 
       {/* Filter */}
-      <div className="grid grid-cols-1 gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+      <div className="produk-filter-workspace grid grid-cols-1 gap-3 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         <SearchSelect value={bulanEff} onChange={setBulanPilih} items={itemsBulan} ariaLabel="Pilih bulan" placeholder="Cari bulan…" />
         <SearchSelect value={areaEff} onChange={setArea} items={itemsArea} ariaLabel="Pilih area" placeholder="Cari area…" />
         <SearchSelect value={kategoriEff} onChange={setKategori} items={itemsKategori} ariaLabel="Pilih kategori" placeholder="Cari kategori…" />
@@ -478,7 +478,7 @@ function ProdukPageContent() {
       )}
 
       {/* Ringkasan */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="produk-kpi-grid grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Transaksi" icon="🧾" delay={0}>
           <CountUp value={filtered.length} className="mt-1 block text-3xl font-bold tabular-nums" />
         </StatCard>
@@ -494,7 +494,7 @@ function ProdukPageContent() {
       </div>
 
       {/* Menu grafik: klik untuk membuka / menutup, boleh lebih dari satu */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-3">
+      <div className="produk-chart-controls flex flex-wrap items-center gap-2 rounded-[1.6rem] border border-white/10 bg-white/[0.03] p-3">
         <span className="px-2 text-sm font-semibold uppercase tracking-wider text-slate-400">Grafik</span>
         {([
           { k: "barang", icon: "📊", label: "Per barang", ok: true, hint: "" },
@@ -671,7 +671,7 @@ function ProdukPageContent() {
       )}
 
       {/* Tabel */}
-      <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
+      <div className="produk-data-table overflow-hidden rounded-[1.6rem] border border-white/10 bg-white/[0.04]">
         <div className="overflow-x-auto">
           <table className="w-full whitespace-nowrap text-base">
             <thead>

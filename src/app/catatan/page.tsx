@@ -162,15 +162,15 @@ export default function CatatanPage() {
   const judulTampil = (c: Catatan) => c.judul.trim() || judulDari(c.isi) || "Catatan tanpa judul";
 
   return (
-    <div className="page-redesign page-catatan space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-catatan module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="Catatan" title="Catatan"
         sub="Tulis bebas — agenda rapat, ide, atau rencana. Tersimpan otomatis di peramban ini.">
         <button onClick={buat} className="btn-ink"><span className="text-base leading-none">＋</span> Catatan baru</button>
       </PageHeader>
 
-      <div className="grid gap-5 lg:grid-cols-[clamp(17rem,20vw,28rem)_1fr]">
+      <div className="catatan-workspace grid gap-5 lg:grid-cols-[clamp(17rem,20vw,28rem)_minmax(0,1fr)]">
         {/* Daftar catatan */}
-        <aside className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-2.5">
+        <aside className="catatan-list rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-2.5">
           <p className="px-2 py-1.5 text-xs uppercase tracking-[0.18em] text-slate-500">{daftar.length} catatan</p>
           {daftar.length === 0 ? (
             <p className="px-2 py-6 text-sm text-slate-400">Belum ada catatan. Mulai dengan “Catatan baru”.</p>
@@ -201,7 +201,7 @@ export default function CatatanPage() {
 
         {/* Editor */}
         <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+          className="catatan-editor rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4 sm:p-5">
           {!aktif ? (
             <div className="flex min-h-[45vh] flex-col items-center justify-center gap-3 text-center">
               <Icn e="📝" className="h-10 w-10 text-indigo-300" />

@@ -214,11 +214,11 @@ function DapPageContent() {
   ];
 
   return (
-    <div className="page-redesign page-dap space-y-7 py-5 sm:py-7">
+    <div className="page-redesign page-dap module-workspace space-y-7 py-5 sm:py-7">
       <PageHeader crumb="DAP" title="Rincian Detail Toko"
         sub={isLoading ? "Memuat…" : `${rows.length === all.length ? all.length : `${rows.length} dari ${all.length}`} toko · Diperbarui ${new Date(data!.updatedAt).toLocaleString("id-ID")}`} />
 
-      <div className="space-y-2">
+      <div className="dap-filter-workspace space-y-2">
         <FilterBar>
           <FilterGroup label="Periode">
             <FilterSelect value={monthIdx} onChange={(v) => setMonthIdx(Number(v))} title="Bulan laporan">
@@ -272,7 +272,7 @@ function DapPageContent() {
         </FilterBar>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="dap-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi label="Total Toko" delay={0} sub={`${seg.aktif.toko} ada transaksi · ${seg.tanpa.toko} tanpa transaksi`}>
           <CountUp value={totalToko} className="block text-3xl font-bold" />
         </Kpi>
@@ -300,7 +300,7 @@ function DapPageContent() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        className={`rounded-2xl border p-4 ${seg.hilangNominal > 0 ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-amber-400/20 bg-amber-500/[0.05]"}`}>
+        className={`dap-gap-panel rounded-2xl border p-4 ${seg.hilangNominal > 0 ? "border-rose-400/25 bg-rose-500/[0.06]" : "border-amber-400/20 bg-amber-500/[0.05]"}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className={`text-sm uppercase tracking-wider ${seg.hilangNominal > 0 ? "text-rose-300" : "text-amber-300"}`}>
@@ -387,7 +387,7 @@ function DapPageContent() {
         )}
       </motion.div>
 
-      <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
+      <div className="dap-main-chart rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
           <p className="lbl">Omset per Bulan (Jan–Des)</p>
           <p className="text-[0.8rem] text-slate-500">Blok penuh = aktual · blok garis = target toko yang tidak transaksi di bulan itu</p>
@@ -395,7 +395,7 @@ function DapPageContent() {
         <DapChart values={monthlyTotals} loss={lossMonthly} selectedMonth={monthIdx} />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="dap-insight-grid grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-5">
           <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
             <p className="lbl">Komposisi Toko · {MONTHS[monthIdx]}</p>
@@ -421,7 +421,7 @@ function DapPageContent() {
 
       {selected && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="card-hl rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4">
+          className="dap-selected-panel card-hl rounded-[1.6rem] border border-white/10 bg-white/[0.04] p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-base font-bold text-slate-100">{selected.toko}</p>
