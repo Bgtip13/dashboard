@@ -4,29 +4,29 @@ Versi ini dibangun ulang dari arsip proyek PCP Dashboard asli yang diberikan pen
 
 ## Fokus perubahan
 
-- Beranda: panel performance insight berbasis capaian aktual dan kutipan motivasi yang berganti otomatis; kartu utama dan akses cepat diberi hierarki yang lebih kuat.
-- Pencapaian Bulanan: ringkasan performa utama, empat indikator dengan progress visual, perbandingan area, dan matriks rincian Penjualan/Trip/Kontribusi/Hari Efektif. PotionGauge tidak dipakai pada halaman ini, tetapi file komponennya tetap disimpan.
-- Pencapaian Mingguan: KPI diperbesar, grafik aktual per minggu dan grafik akumulasi ditampilkan berdampingan, tabel tetap tersedia. Kontrol tampilan grafik tetap aktif.
-- DAP: seluruh filter, filter lanjutan, KPI, grafik tren, komposisi, rincian kabupaten, detail toko, dan tabel dipertahankan; visual panel, filter, tabel, dan keterbacaan ditingkatkan.
-- Produk: semua filter cascading, filter tanggal, menu multi-grafik, tren harian/bulanan/per-produk, ranking, dan tabel tetap dipertahankan; komposisi filter, KPI, panel grafik, dan tabel diberi sistem visual baru.
-- Catatan: editor dan penyimpanan otomatis tetap; daftar catatan dan area editor diperjelas.
-- Pengguna: alur tambah/edit/hapus user dan hak akses tetap; form dan tabel administrasi diperbarui.
-- Sistem tema: token desain PCP charcoal/lime dan light/dark mode tetap dipakai; aturan responsif ditambahkan.
+Revisi ini berangkat dari PCP Evolution yang disetujui pengguna. Fokus tambahan adalah memperbaiki ruang kerja modul yang sebelumnya masih terasa sempit, bukan mengganti identitas desain atau menulis ulang logika bisnis.
 
-## File yang berubah dibanding proyek asli
+- **Lebar aplikasi:** area konten utama sekarang menggunakan lebar yang tersedia (`w-full`, tanpa batas `max-width` tetap). Ruang kiri tetap mengikuti lebar sidebar melalui `--side-w`; padding layar dibuat adaptif.
+- **DAP:** filter ditempatkan sebagai satu area kontrol, KPI dibuat responsif, panel nominal hilang/komposisi gap diberi hierarki visual, dan area grafik/rincian menggunakan lebar konten penuh. Filter, segmentasi, perhitungan, detail toko, grafik, sorting, dan tabel tidak dihapus.
+- **Produk:** area filter dibuat menjadi grid adaptif, KPI dan kontrol grafik mendapat panel konsisten, grafik dan tabel memanfaatkan lebar yang tersedia. Filter bulan/tanggal/area/kategori/brand/toko, menu grafik, tren, ranking, pagination, dan tabel tetap ada.
+- **Catatan:** daftar catatan dan editor diperlakukan sebagai workspace dua kolom dengan lebar editor fleksibel. Toolbar, autosave lokal, dan format isi tetap dipertahankan.
+- **Pengguna:** form tambah akun dan tabel administrasi diselaraskan dengan token tema PCP; tabel tetap bisa digulir pada layar sempit. Tambah/edit/hapus akun dan pengaturan akses tidak diubah.
+- **Responsif:** breakpoint desktop, tablet, dan ponsel ditata ulang agar grid tidak memaksa lebar tetap dan elemen data tidak saling menindih.
+- **Tema:** identitas charcoal/lime serta light/dark mode tetap menggunakan token tema yang sudah ada.
 
-1. `src/app/globals.css`
-2. `src/app/page.tsx`
-3. `src/app/bulanan/page.tsx`
-4. `src/app/mingguan/page.tsx`
-5. `src/app/dap/page.tsx`
-6. `src/app/produk/page.tsx`
-7. `src/app/catatan/page.tsx`
-8. `src/app/pengguna/page.tsx`
-9. `src/components/MatrixChart.tsx`
-10. `src/features/weekly/WeeklyChart.tsx`
+Tidak ada perubahan pada perhitungan bisnis, `src/lib/`, API route, autentikasi, Supabase, permission, atau struktur data.
 
-Tidak ada file pada `src/lib/`, API route, autentikasi, Supabase, atau hak akses yang diubah. `package.json` dan `package-lock.json` tetap dari proyek asli.
+## File yang berubah dibanding ZIP PCP Evolution yang diunggah
+
+1. `src/app/globals.css` — sistem lebar fluid dan styling spesifik keempat modul.
+2. `src/components/ShellMain.tsx` — kanvas utama tidak lagi dibatasi `max-width` tetap.
+3. `src/app/dap/page.tsx` — hook class layout untuk filter, KPI, gap, grafik, dan detail.
+4. `src/app/produk/page.tsx` — hook class layout untuk filter, KPI, kontrol grafik, dan tabel.
+5. `src/app/catatan/page.tsx` — hook class untuk workspace daftar/editor.
+6. `src/app/pengguna/page.tsx` — hook class untuk form dan tabel administrasi.
+7. `PCP-EVOLUTION-IMPLEMENTATION.md` — catatan perubahan dan hasil validasi revisi.
+
+Semua perubahan di halaman adalah class/layout; tidak ada handler data atau rumus bisnis yang diubah.
 
 ## Menjalankan secara lokal
 
@@ -38,7 +38,8 @@ Tidak ada file pada `src/lib/`, API route, autentikasi, Supabase, atau hak akses
 
 ## Catatan validasi
 
-- Seluruh 82 file TypeScript/TSX berhasil diparse oleh TypeScript `transpileModule` tanpa diagnostic sintaks.
-- Perbandingan hash terhadap arsip asli menunjukkan tepat 10 file di atas berubah; file `src/lib/`, API, autentikasi, dan konfigurasi dependensi tidak berubah.
-- `npm ci` dan `npm install` tidak selesai pada lingkungan penyusunan karena timeout pengunduhan dependensi. Karena itu production build belum dapat diklaim lulus. Jalankan `npm run build` pada mesin lokal setelah dependensi terpasang.
-- Tidak ada `.env.local`, token, atau kredensial yang disertakan dalam arsip.
+- `src/app/globals.css` berhasil diparse oleh PostCSS (409 aturan CSS).
+- Pemeriksaan TypeScript tidak menemukan diagnostic sintaks TS/TSX. Pemeriksaan tipe penuh tidak dapat dinyatakan lulus karena dependensi proyek (`next`, `react`, dan lainnya) belum terpasang di lingkungan penyusunan.
+- `npm ci --ignore-scripts --no-audit --no-fund` mengalami timeout saat mengunduh dependensi. Karena itu `next build` belum dapat dijalankan dan belum boleh dianggap lulus.
+- Jalankan `npm ci` lalu `npm run build` di komputer lokal sebelum deploy.
+- Arsip ini tidak menyertakan `.env.local`, token, atau kredensial.
